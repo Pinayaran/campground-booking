@@ -159,31 +159,31 @@ postman/               # exported collection + environment
 
 Do this together before splitting up, so neither person has to rework anything later.
 
-- [ ] Create the repo structure above, `package.json`, and `.gitignore` (ignore `node_modules` and `config.env`).
-- [ ] Set up a shared MongoDB Atlas cluster and share the connection string privately (not in git).
-- [ ] Agree on the **response format**:
+- [x] Create the repo structure above, `package.json`, and `.gitignore` (ignore `node_modules` and `config.env`).
+- [x] Set up a shared MongoDB Atlas cluster and share the connection string privately (not in git).
+- [x] Agree on the **response format**:
   - Success: `{ success: true, data: ... }` (plus `count` and `pagination` for lists).
   - Error: `{ success: false, message: "..." }`.
-- [ ] Agree on **status codes**: `200` OK, `201` created, `400` validation or business-rule error, `401` not logged in, `403` not allowed (wrong owner or role), `404` not found, `500` server error.
-- [ ] Agree on the **booking date fields**: `checkInDate` (Date) plus `nights` (1–3). Check-out is computed as `checkInDate + nights`.
-- [ ] Agree on the **availability helper signature** (see Handoff Points).
-- [ ] Git workflow: each person works on a feature branch (e.g. `dipsy/bookings`, `lala/reviews`) and merges into `main` through a PR that the other person reviews.
+- [x] Agree on **status codes**: `200` OK, `201` created, `400` validation or business-rule error, `401` not logged in, `403` not allowed (wrong owner or role), `404` not found, `500` server error.
+- [x] Agree on the **booking date fields**: `checkInDate` (Date) plus `nights` (1–3). Check-out is computed as `checkInDate + nights`.
+- [x] Agree on the **availability helper signature** (see Handoff Points).
+- [x] Git workflow: each person works on a feature branch (e.g. `dipsy/bookings`, `lala/reviews`) and merges into `main` through a PR that the other person reviews.
 
 ### Dipsy: Base Requirements
 
 #### D1. Server and Database Setup
 
-- [ ] `server.js`: Express app, JSON body parser, `cookie-parser`, route mounting under `/api/v1`, and a basic error handler.
-- [ ] `config/db.js`: connect to MongoDB using `MONGO_URI`.
-- [ ] Security basics: `cors`, and optionally `helmet` and a rate limiter.
+- [x] `server.js`: Express app, JSON body parser, `cookie-parser`, route mounting under `/api/v1`, and a basic error handler.
+- [x] `config/db.js`: connect to MongoDB using `MONGO_URI`.
+- [x] Security basics: `cors`, and optionally `helmet` and a rate limiter.
 - **Done when:** the server starts and connects to Atlas without errors.
 
 #### D2. User Model and Authentication (Base 1–2)
 
-- [ ] `models/User.js`: `name`, `tel`, `email` (unique, validated format), `password` (min length, `select: false`), `role` (`user`/`admin`, default `user`), `createdAt`.
+- [x] `models/User.js`: `name`, `tel`, `email` (unique, validated format), `password` (min length, `select: false`), `role` (`user`/`admin`, default `user`), `createdAt`.
   - Hash the password with bcrypt in a `pre('save')` hook, only when it has been modified (Lala's password change depends on this).
   - Add methods `getSignedJwtToken()` and `matchPassword(entered)`.
-- [ ] `controllers/auth.js` and `routes/auth.js`:
+- [x] `controllers/auth.js` and `routes/auth.js`:
   - `POST /auth/register`: create the user and return a token. A duplicate email returns `400`.
   - `POST /auth/login`: check email and password. Wrong credentials return `401` without saying which field was wrong.
   - `GET /auth/logout`: clear the token cookie.
@@ -193,7 +193,7 @@ Do this together before splitting up, so neither person has to rework anything l
 
 #### D3. Auth Middleware
 
-- [ ] `middleware/auth.js`:
+- [x] `middleware/auth.js`:
   - `protect`: read the token from the `Authorization: Bearer` header (or the cookie), verify it, and set `req.user`. Return `401` if the token is missing or invalid.
   - `authorize(...roles)`: return `403` if `req.user.role` is not in `roles`.
 - **Done when:** a protected route rejects requests without a token, and an admin-only route rejects regular users.
@@ -201,9 +201,9 @@ Do this together before splitting up, so neither person has to rework anything l
 
 #### D4. Base Campground Model and CRUD (Base 3)
 
-- [ ] `models/Campground.js`: `name` (required, unique), `address`, `tel`. Lala adds the other fields to this same file.
-- [ ] Add a virtual `bookings` field, and delete a campground's bookings when the campground is deleted.
-- [ ] `controllers/campgrounds.js` and `routes/campgrounds.js`:
+- [x] `models/Campground.js`: `name` (required, unique), `address`, `tel`. Lala adds the other fields to this same file.
+- [x] Add a virtual `bookings` field, and delete a campground's bookings when the campground is deleted.
+- [x] `controllers/campgrounds.js` and `routes/campgrounds.js`:
   - `GET /campgrounds`: plain list (Lala adds filters later).
   - `GET /campgrounds/:id`: single campground. An unknown id returns `404`.
   - `POST`, `PUT`, `DELETE /campgrounds/:id`: `protect` + `authorize('admin')`.
@@ -211,20 +211,23 @@ Do this together before splitting up, so neither person has to rework anything l
 
 #### D5. Booking Model and APIs (Base 3–9)
 
-- [ ] `models/Booking.js`: `user` (ref User), `campground` (ref Campground), `checkInDate`, `nights` (min 1, max 3), `status` (`upcoming`/`completed`/`cancelled`, default `upcoming`), `createdAt`.
-- [ ] Routes: mount `/campgrounds/:campgroundId/bookings` as a nested router, plus `/bookings`.
-- [ ] `POST /campgrounds/:campgroundId/bookings` (`protect`):
+- [x] `models/Booking.js`: `user` (ref User), `campground` (ref Campground), `checkInDate`, `nights` (min 1, max 3), `status` (`upcoming`/`completed`/`cancelled`, default `upcoming`), `createdAt`.
+- [x] Routes: mount `/campgrounds/:campgroundId/bookings` as a nested router, plus `/bookings`.
+- [x] `POST /campgrounds/:campgroundId/bookings` (`protect`):
   - Check that the campground exists (`404` otherwise).
   - Reject `nights > 3` or `nights < 1` with `400`.
   - Reject check-in dates in the past with `400`.
   - Call Lala's `checkAvailability(...)` and return `400` if the campground is full.
   - Set `user` from `req.user`, never from the request body.
-- [ ] `GET /bookings` (`protect`): regular users see only their own bookings, admins see all. Populate the campground's `name`, `address`, and `tel`.
-- [ ] `GET /bookings/:id` (`protect`): owner or admin only, `403` otherwise.
-- [ ] `PUT /bookings/:id` (`protect`): owner or admin only. Recheck the 3-night limit and availability (excluding the booking being edited). Don't let users change `user` or `status`.
-- [ ] `DELETE /bookings/:id` (`protect`): owner or admin only.
-- [ ] Mark bookings whose check-out date has passed as `completed`. Either compute this whenever bookings are read, or add a small helper Lala can call. Agree on which with Lala.
+- [x] `GET /bookings` (`protect`): regular users see only their own bookings, admins see all. Populate the campground's `name`, `address`, and `tel`.
+- [x] `GET /bookings/:id` (`protect`): owner or admin only, `403` otherwise.
+- [x] `PUT /bookings/:id` (`protect`): owner or admin only. Recheck the 3-night limit and availability (excluding the booking being edited). Don't let users change `user` or `status`.
+- [x] `DELETE /bookings/:id` (`protect`): owner or admin only.
+- [x] Mark bookings whose check-out date has passed as `completed`. Either compute this whenever bookings are read, or add a small helper Lala can call. Agree on which with Lala.
+  - Implemented as `Booking.markCompleted(filter)`, which runs on every booking read. Lala can call it in the review endpoint too.
 - **Done when:** every row of Base 3–9 in the mapping table works in Postman, including the error cases.
+
+> **Status (2026-11-02):** D1–D5 are done and pushed to branch `dipsy/base-backend`. A smoke test against the Atlas cluster passed 28/28 (auth, campground CRUD, bookings, ownership and role checks), and every response took under 300 ms. `checkAvailability` is still a stub that always returns available, until L2 is merged.
 
 #### D6. Seed Data and Postman (Base Part)
 
@@ -237,6 +240,16 @@ Do this together before splitting up, so neither person has to rework anything l
   - Admin viewing, updating, and deleting any booking → `200`
   - A regular user calling admin campground routes → `403`
 - [ ] Set up a Postman environment with `{{URL}}` and `{{TOKEN}}`, and have the login request save the token automatically.
+
+#### Dipsy: To-do (Fixes from Review)
+
+- [ ] **Security:** `POST /auth/register` accepts `role` from the request body, so anyone can register as an admin. Remove `role` from the register controller and create admins only through `seeder.js`.
+- [ ] Block date changes on bookings that are `completed` or `cancelled` in `PUT /bookings/:id` (return `400`).
+- [ ] Optional: add `helmet` and a rate limiter (`express-rate-limit`) in `server.js`.
+- [ ] Once L2 is merged, retest booking create and update against a full campground and expect `400`.
+- [ ] Clean up the test users left in the database by the smoke test (`node seeder -d` once the seeder exists).
+- [ ] Share the `MONGO_URI` with Lala privately (not in git). Atlas Network Access is set to `0.0.0.0/0`, so Lala can connect without extra setup.
+- [ ] Open a PR from `dipsy/base-backend` to `main` and ask Lala to review it.
 
 ### Lala: Additional Requirements
 
