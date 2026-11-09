@@ -140,6 +140,8 @@ exports.addBooking = async (req, res, next) => {
 // @access  Private
 exports.updateBooking = async (req, res, next) => {
     try {
+        await Booking.markCompleted({ _id: req.params.id });
+
         const booking = await Booking.findById(req.params.id);
 
         if (!booking) {
@@ -156,6 +158,10 @@ exports.updateBooking = async (req, res, next) => {
         const datesChanged = req.body.checkInDate !== undefined || req.body.nights !== undefined;
 
         if (datesChanged) {
+            if (booking.status !== 'upcoming') {
+                return res.status(400).json({ success: false, message: `Can not change the dates of a ${booking.status} booking` });
+            }
+
             const error = validateStay(checkInDate, nights);
             if (error) {
                 return res.status(400).json({ success: false, message: error });
