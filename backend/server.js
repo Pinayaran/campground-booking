@@ -2,6 +2,8 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const helmet = require('helmet');
+const { rateLimit } = require('express-rate-limit');
 const connectDB = require('./config/db');
 
 //load env var
@@ -14,6 +16,15 @@ const auth = require('./routes/auth');
 const app = express();
 app.set('query parser', 'extended');
 app.use(express.json());
+app.use(helmet());
+//Rate limiting: 1000 requests per 10 minutes per IP (high enough for Postman runs)
+app.use(rateLimit({
+    windowMs: 10 * 60 * 1000,
+    limit: 1000,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { success: false, message: 'Too many requests, please try again later' }
+}));
 app.use(cookieParser());
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',

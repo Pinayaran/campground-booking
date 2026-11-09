@@ -231,25 +231,27 @@ Do this together before splitting up, so neither person has to rework anything l
 
 #### D6. Seed Data and Postman (Base Part)
 
-- [ ] `seeder.js`: import and destroy commands (`node seeder -i` / `node seeder -d`). Create one admin, two regular users, and a few bookings, including **one past booking** so Lala can test reviews.
-- [ ] Postman folders **Auth**, **Campgrounds (admin)**, and **Bookings**, with tests for:
+- [x] `seeder.js`: import and destroy commands (`node seeder -i` / `node seeder -d`). Create one admin, two regular users, and a few bookings, including **one past booking** so Lala can test reviews.
+- [x] Postman folders **Auth**, **Campgrounds (admin)**, and **Bookings**, with tests for:
   - Registering with a duplicate email → `400`
   - Logging in with a wrong password → `401`
   - Booking 4 nights → `400`
   - User A updating or deleting User B's booking → `403`
   - Admin viewing, updating, and deleting any booking → `200`
   - A regular user calling admin campground routes → `403`
-- [ ] Set up a Postman environment with `{{URL}}` and `{{TOKEN}}`, and have the login request save the token automatically.
+- [x] Set up a Postman environment with `{{URL}}` and `{{TOKEN}}`, and have the login request save the token automatically.
+
+> **Status (2026-11-09):** D6 is done on branch `dipsy/seed-postman-fixes`. `node seeder -i` creates `admin@gmail.com`, `user1@gmail.com`, and `user2@gmail.com` (password `123456`), 3 base campgrounds, and 6 bookings: one past (`completed`) booking per regular user, three upcoming bookings, and one cancelled booking. The collection and environment are in `postman/` (53 requests). Every request also checks that the response arrives in under 3 seconds. The collection passes in full against a freshly seeded database.
 
 #### Dipsy: To-do (Fixes from Review)
 
-- [ ] **Security:** `POST /auth/register` accepts `role` from the request body, so anyone can register as an admin. Remove `role` from the register controller and create admins only through `seeder.js`.
-- [ ] Block date changes on bookings that are `completed` or `cancelled` in `PUT /bookings/:id` (return `400`).
-- [ ] Optional: add `helmet` and a rate limiter (`express-rate-limit`) in `server.js`.
+- [x] **Security:** `POST /auth/register` accepts `role` from the request body, so anyone can register as an admin. Remove `role` from the register controller and create admins only through `seeder.js`.
+- [x] Block date changes on bookings that are `completed` or `cancelled` in `PUT /bookings/:id` (return `400`).
+- [x] Optional: add `helmet` and a rate limiter (`express-rate-limit`) in `server.js`. The limit is 1000 requests per 10 minutes per IP, which is high enough for Postman runs.
 - [ ] Once L2 is merged, retest booking create and update against a full campground and expect `400`.
 - [ ] Clean up the test users left in the database by the smoke test (`node seeder -d` once the seeder exists).
 - [ ] Share the `MONGO_URI` with Lala privately (not in git). Atlas Network Access is set to `0.0.0.0/0`, so Lala can connect without extra setup.
-- [ ] Open a PR from `dipsy/base-backend` to `main` and ask Lala to review it.
+- [x] Open a PR from `dipsy/base-backend` to `main` and ask Lala to review it. (Merged as PR #1.)
 
 ### Lala: Additional Requirements
 

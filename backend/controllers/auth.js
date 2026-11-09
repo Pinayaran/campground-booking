@@ -5,15 +5,16 @@ const User = require('../models/User');
 // @access  Public
 exports.register = async (req, res, next) => {
     try {
-        const { name, tel, email, password, role } = req.body;
+        //role is never taken from the body: everyone registers as 'user'.
+        //Admins are created only through seeder.js.
+        const { name, tel, email, password } = req.body;
 
         //Create user
         const user = await User.create({
             name,
             tel,
             email,
-            password,
-            role
+            password
         });
 
         sendTokenResponse(user, 201, res);
