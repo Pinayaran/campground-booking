@@ -224,6 +224,52 @@
           }
         },
         {
+          "name": "Register with invalid telephone -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Mentions telephone\", () => pm.expect(pm.response.json().message).to.match(/telephone/i));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/register",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"name\": \"Bad Tel\",\n  \"tel\": \"call-me\",\n  \"email\": \"badtel@test.com\",\n  \"password\": \"123456\"\n}"
+            }
+          }
+        },
+        {
           "name": "Login wrong password -> 401",
           "event": [
             {
@@ -497,7 +543,7 @@
           }
         },
         {
-          "name": "Logout (clears the token cookie)",
+          "name": "Logout (revokes the token and clears the cookie)",
           "event": [
             {
               "listen": "test",
@@ -564,6 +610,44 @@
               "type": "noauth"
             }
           }
+        },
+        {
+          "name": "Get me with the logged-out token -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/auth/me",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{newUserToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -597,6 +681,78 @@
               ],
               "path": [
                 "campgrounds"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get campgrounds with a $where filter -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?$where=sleep(1000)",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "sleep(1000)"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get campgrounds with an unknown operator -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?name[ne]=x",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "name[ne]",
+                  "value": "x"
+                }
               ]
             },
             "auth": {
@@ -757,6 +913,57 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "Create campground with invalid telephone -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"name\": \"Bad Tel Camp\",\n  \"address\": \"Nowhere\",\n  \"tel\": \"12\"\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         },
@@ -1665,6 +1872,34 @@
           }
         },
         {
+          "name": "Get booking with an invalid id -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/bookings/not-an-id",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "bookings",
+                "not-an-id"
+              ]
+            }
+          }
+        },
+        {
           "name": "User1 update own booking",
           "event": [
             {
@@ -1960,6 +2195,34 @@
                   "value": "{{user1Token}}",
                   "type": "string"
                 }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete booking with an invalid id -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/bookings/not-an-id",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "bookings",
+                "not-an-id"
               ]
             }
           }
