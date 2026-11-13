@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const Campground = require('../models/Campground');
 const { checkAvailability } = require('../utils/availability');
+const { parseDateOnly } = require('../utils/dates');
 
 const populateCampground = {
     path: 'campground',
@@ -10,10 +11,9 @@ const populateCampground = {
 const isOwnerOrAdmin = (booking, user) =>
     booking.user.toString() === user.id || user.role === 'admin';
 
-//Validate checkInDate / nights from the request. Returns an error message or null.
-const validateStay = (checkInDate, nights) => {
-    const date = new Date(checkInDate);
-    if (!checkInDate || isNaN(date.getTime())) {
+//Validate the parsed check-in Date (null = invalid) and nights. Returns an error message or null.
+const validateStay = (date, nights) => {
+    if (!date) {
         return 'Please provide a valid check-in date (YYYY-MM-DD)';
     }
 
@@ -108,14 +108,15 @@ exports.addBooking = async (req, res, next) => {
             return res.status(404).json({ success: false, message: `No campground with the id of ${req.params.campgroundId}` });
         }
 
-        const { checkInDate, nights } = req.body;
+        const { nights } = req.body;
+        const date = parseDateOnly(req.body.checkInDate);
 
-        const error = validateStay(checkInDate, nights);
+        const error = validateStay(date, nights);
         if (error) {
             return res.status(400).json({ success: false, message: error });
         }
 
-        const { available } = await checkAvailability(campground._id, new Date(checkInDate), Number(nights));
+        const { available } = await checkAvailability(campground._id, date, Number(nights));
         if (!available) {
             return res.status(400).json({ success: false, message: 'Campground is fully booked for the selected dates' });
         }
@@ -124,7 +125,7 @@ exports.addBooking = async (req, res, next) => {
         const booking = await Booking.create({
             user: req.user.id,
             campground: campground._id,
-            checkInDate,
+            checkInDate: date,
             nights
         });
 
@@ -159,7 +160,7 @@ exports.updateBooking = async (req, res, next) => {
             return res.status(403).json({ success: false, message: `User ${req.user.id} is not authorized to update this booking` });
         }
 
-        const checkInDate = req.body.checkInDate !== undefined ? req.body.checkInDate : booking.checkInDate;
+        const date = req.body.checkInDate !== undefined ? parseDateOnly(req.body.checkInDate) : booking.checkInDate;
         const nights = req.body.nights !== undefined ? req.body.nights : booking.nights;
         const datesChanged = req.body.checkInDate !== undefined || req.body.nights !== undefined;
 
@@ -168,17 +169,17 @@ exports.updateBooking = async (req, res, next) => {
                 return res.status(400).json({ success: false, message: `Can not change the dates of a ${booking.status} booking` });
             }
 
-            const error = validateStay(checkInDate, nights);
+            const error = validateStay(date, nights);
             if (error) {
                 return res.status(400).json({ success: false, message: error });
             }
 
-            const { available } = await checkAvailability(booking.campground, new Date(checkInDate), Number(nights), booking._id);
+            const { available } = await checkAvailability(booking.campground, date, Number(nights), booking._id);
             if (!available) {
                 return res.status(400).json({ success: false, message: 'Campground is fully booked for the selected dates' });
             }
 
-            booking.checkInDate = checkInDate;
+            booking.checkInDate = date;
             booking.nights = nights;
         }
 

@@ -1,6 +1,8 @@
 const Campground = require('../models/Campground');
 const Booking = require('../models/Booking');
 const { buildFilter } = require('../utils/queryFilter');
+const { checkAvailability } = require('../utils/availability');
+const { parseDateOnly } = require('../utils/dates');
 
 // @desc    Get all campgrounds
 // @route   GET /api/v1/campgrounds
@@ -162,5 +164,35 @@ exports.deleteCampground = async (req, res, next) => {
     } catch (err) {
         console.log(err.stack);
         res.status(400).json({ success: false, message: 'Cannot delete campground' });
+    }
+};
+
+// @desc    Get availability of a campground on one night
+// @route   GET /api/v1/campgrounds/:id/availability?date=YYYY-MM-DD
+// @access  Public
+exports.getCampgroundAvailability = async (req, res, next) => {
+    try {
+        const date = parseDateOnly(req.query.date);
+        if (!date) {
+            return res.status(400).json({ success: false, message: 'Please provide a valid date (YYYY-MM-DD)' });
+        }
+
+        const campground = await Campground.findById(req.params.id).select('_id');
+        if (!campground) {
+            return res.status(404).json({ success: false, message: `No campground with the id of ${req.params.id}` });
+        }
+
+        const { capacity, booked, remaining, available } = await checkAvailability(campground._id, date, 1);
+
+        res.status(200).json({
+            success: true,
+            data: { date: req.query.date, capacity, booked, remaining, available }
+        });
+    } catch (err) {
+        console.log(err.stack);
+        if (err.name === 'CastError') {
+            return res.status(400).json({ success: false, message: 'Invalid campground id' });
+        }
+        res.status(500).json({ success: false, message: 'Cannot check availability' });
     }
 };

@@ -7,7 +7,8 @@ const {
     getCampground,
     createCampground,
     updateCampground,
-    deleteCampground
+    deleteCampground,
+    getCampgroundAvailability
 } = require('../controllers/campgrounds');
 
 //Include other resource routers
@@ -19,6 +20,8 @@ router.use('/:campgroundId/bookings', bookingRouter);
 router.route('/')
     .get(getCampgrounds)
     .post(protect, authorize('admin'), createCampground);
+
+router.get('/:id/availability', getCampgroundAvailability);
 
 router.route('/:id')
     .get(getCampground)
