@@ -4,6 +4,7 @@ const { protect, authorize } = require('../middleware/auth');
 
 const {
     getCampgrounds,
+    getCampgroundLocations,
     getCampground,
     createCampground,
     updateCampground,
@@ -20,6 +21,8 @@ router.use('/:campgroundId/bookings', bookingRouter);
 router.route('/')
     .get(getCampgrounds)
     .post(protect, authorize('admin'), createCampground);
+
+router.get('/locations', getCampgroundLocations);
 
 router.get('/:id/availability', getCampgroundAvailability);
 

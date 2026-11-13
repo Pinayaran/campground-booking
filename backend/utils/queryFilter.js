@@ -6,11 +6,13 @@
 //any other operator and any deeper nesting throws, so callers can answer 400.
 const OPERATORS = ['gt', 'gte', 'lt', 'lte', 'in'];
 
-const invalid = () => {
+const invalidQueryError = () => {
     const err = new Error('Invalid query');
     err.statusCode = 400;
     return err;
 };
+
+exports.invalidQueryError = invalidQueryError;
 
 const isPlainObject = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -18,10 +20,10 @@ exports.buildFilter = reqQuery => {
     const filter = {};
 
     for (const [field, value] of Object.entries(reqQuery)) {
-        if (field.startsWith('$')) throw invalid();
+        if (field.startsWith('$')) throw invalidQueryError();
 
         if (!isPlainObject(value)) {
-            if (Array.isArray(value) && value.some(v => typeof v === 'object')) throw invalid();
+            if (Array.isArray(value) && value.some(v => typeof v === 'object')) throw invalidQueryError();
             filter[field] = value;
             continue;
         }
@@ -29,14 +31,14 @@ exports.buildFilter = reqQuery => {
         filter[field] = {};
         for (const [op, opValue] of Object.entries(value)) {
             if (!OPERATORS.includes(op) || isPlainObject(opValue)) {
-                throw invalid();
+                throw invalidQueryError();
             }
             if (op === 'in') {
                 const list = Array.isArray(opValue) ? opValue : String(opValue).split(',');
-                if (list.some(v => typeof v === 'object')) throw invalid();
+                if (list.some(v => typeof v === 'object')) throw invalidQueryError();
                 filter[field].$in = list;
             } else {
-                if (Array.isArray(opValue)) throw invalid();
+                if (Array.isArray(opValue)) throw invalidQueryError();
                 filter[field][`$${op}`] = opValue;
             }
         }
