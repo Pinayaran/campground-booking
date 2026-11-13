@@ -9,6 +9,7 @@ const { MongoMemoryServer } = require('mongodb-memory-server');
 require('../models/User');
 require('../models/Campground');
 require('../models/Booking');
+require('../models/Review');
 
 let mongod;
 
