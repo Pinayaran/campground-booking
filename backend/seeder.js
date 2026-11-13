@@ -35,11 +35,11 @@ const users = [
     { name: 'User Two', tel: '0822222222', email: 'user2@gmail.com', password: '123456', role: 'user' }
 ];
 
-//Base fields only. Lala extends these with province/region/details/capacity (L8).
+//Required fields only; details, capacity and more campgrounds are added in L8
 const campgrounds = [
-    { name: 'Doi Inthanon Camp', address: 'Ban Luang, Chom Thong, Chiang Mai 50160', tel: '053000001' },
-    { name: 'Khao Yai Pine Camp', address: 'Mu Si, Pak Chong, Nakhon Ratchasima 30130', tel: '044000002' },
-    { name: 'Erawan Riverside Camp', address: 'Tha Kradan, Si Sawat, Kanchanaburi 71250', tel: '034000003' }
+    { name: 'Doi Inthanon Camp', address: 'Ban Luang, Chom Thong, Chiang Mai 50160', tel: '053000001', province: 'Chiang Mai', region: 'North' },
+    { name: 'Khao Yai Pine Camp', address: 'Mu Si, Pak Chong, Nakhon Ratchasima 30130', tel: '044000002', province: 'Nakhon Ratchasima', region: 'Northeast' },
+    { name: 'Erawan Riverside Camp', address: 'Tha Kradan, Si Sawat, Kanchanaburi 71250', tel: '034000003', province: 'Kanchanaburi', region: 'West' }
 ];
 
 const importData = async () => {
