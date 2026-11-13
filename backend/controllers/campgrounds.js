@@ -1,5 +1,6 @@
 const Campground = require('../models/Campground');
 const Booking = require('../models/Booking');
+const Review = require('../models/Review');
 const { buildFilter, invalidQueryError } = require('../utils/queryFilter');
 const { buildCampgroundFilter } = require('../utils/campgroundQuery');
 const { getPagination } = require('../utils/pagination');
@@ -108,7 +109,12 @@ exports.getCampgroundLocations = async (req, res, next) => {
 // @access  Public
 exports.getCampground = async (req, res, next) => {
     try {
-        const campground = await Campground.findById(req.params.id);
+        //Latest 10 reviews, newest first, with the reviewer's name only
+        const campground = await Campground.findById(req.params.id).populate({
+            path: 'reviews',
+            options: { sort: { createdAt: -1 }, limit: 10 },
+            populate: { path: 'user', select: 'name' }
+        });
 
         if (!campground) {
             return res.status(404).json({ success: false, message: `No campground with the id of ${req.params.id}` });
@@ -120,7 +126,10 @@ exports.getCampground = async (req, res, next) => {
         });
     } catch (err) {
         console.log(err.stack);
-        res.status(400).json({ success: false, message: 'Invalid campground id' });
+        if (err.name === 'CastError') {
+            return res.status(400).json({ success: false, message: 'Invalid campground id' });
+        }
+        res.status(500).json({ success: false, message: 'Cannot get campground' });
     }
 };
 
@@ -169,7 +178,7 @@ exports.updateCampground = async (req, res, next) => {
     }
 };
 
-// @desc    Delete campground (and its bookings)
+// @desc    Delete campground (and its bookings and reviews)
 // @route   DELETE /api/v1/campgrounds/:id
 // @access  Private (admin)
 exports.deleteCampground = async (req, res, next) => {
@@ -181,6 +190,7 @@ exports.deleteCampground = async (req, res, next) => {
         }
 
         await Booking.deleteMany({ campground: req.params.id });
+        await Review.deleteMany({ campground: req.params.id });
         await Campground.deleteOne({ _id: req.params.id });
 
         res.status(200).json({
@@ -189,7 +199,10 @@ exports.deleteCampground = async (req, res, next) => {
         });
     } catch (err) {
         console.log(err.stack);
-        res.status(400).json({ success: false, message: 'Cannot delete campground' });
+        if (err.name === 'CastError') {
+            return res.status(400).json({ success: false, message: 'Invalid campground id' });
+        }
+        res.status(500).json({ success: false, message: 'Cannot delete campground' });
     }
 };
 
