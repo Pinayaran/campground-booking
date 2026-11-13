@@ -14,9 +14,11 @@ const {
 
 //Include other resource routers
 const bookingRouter = require('./bookings');
+const reviewRouter = require('./reviews');
 
 //Re-route into other resource routers
 router.use('/:campgroundId/bookings', bookingRouter);
+router.use('/:campgroundId/reviews', reviewRouter);
 
 router.route('/')
     .get(getCampgrounds)

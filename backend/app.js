@@ -6,6 +6,7 @@ const { rateLimit } = require('express-rate-limit');
 
 const campgrounds = require('./routes/campgrounds');
 const bookings = require('./routes/bookings');
+const reviews = require('./routes/reviews');
 const auth = require('./routes/auth');
 
 const app = express();
@@ -28,6 +29,7 @@ app.use(cors({
 
 app.use('/api/v1/campgrounds', campgrounds);
 app.use('/api/v1/bookings', bookings);
+app.use('/api/v1/reviews', reviews);
 app.use('/api/v1/auth', auth);
 
 //Unknown route
