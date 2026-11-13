@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 const { telValidator } = require('../utils/tel');
+const { REGIONS } = require('../config/regions');
 
-//Base fields (D4). Lala adds location/province/region, description, facilities,
-//rules, capacity, averageRating, ratingCount, images and the reviews virtual (L1).
+//averageRating and ratingCount are maintained by reviews, not set through the API
 const CampgroundSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -21,6 +21,55 @@ const CampgroundSchema = new mongoose.Schema({
     trim: true,
     validate: telValidator
   },
+  province: {
+    type: String,
+    required: [true, 'Please add a province'],
+    trim: true
+  },
+  region: {
+    type: String,
+    required: [true, 'Please add a region'],
+    enum: {
+      values: REGIONS,
+      message: `Region must be one of: ${REGIONS.join(', ')}`
+    }
+  },
+  description: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Description can not be more than 1000 characters']
+  },
+  facilities: {
+    type: [String],
+    default: []
+  },
+  rules: {
+    type: [String],
+    default: []
+  },
+  capacity: {
+    type: Number,
+    min: [1, 'Capacity must be at least 1'],
+    default: 10,
+    validate: {
+      validator: Number.isInteger,
+      message: 'Capacity must be a whole number'
+    }
+  },
+  averageRating: {
+    type: Number,
+    min: [0, 'Rating can not be less than 0'],
+    max: [5, 'Rating can not be more than 5'],
+    default: 0
+  },
+  ratingCount: {
+    type: Number,
+    default: 0
+  },
+  images: {
+    type: [String],
+    default: []
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -37,5 +86,15 @@ CampgroundSchema.virtual('bookings', {
   foreignField: 'campground',
   justOne: false
 });
+
+CampgroundSchema.virtual('reviews', {
+  ref: 'Review',
+  localField: '_id',
+  foreignField: 'campground',
+  justOne: false
+});
+
+CampgroundSchema.index({ province: 1 });
+CampgroundSchema.index({ region: 1 });
 
 module.exports = mongoose.model('Campground', CampgroundSchema);

@@ -101,7 +101,9 @@ exports.getCampground = async (req, res, next) => {
 // @access  Private (admin)
 exports.createCampground = async (req, res, next) => {
     try {
-        const campground = await Campground.create(req.body);
+        //Only reviews may set ratings
+        const { averageRating, ratingCount, ...fields } = req.body;
+        const campground = await Campground.create(fields);
 
         res.status(201).json({
             success: true,
@@ -118,7 +120,9 @@ exports.createCampground = async (req, res, next) => {
 // @access  Private (admin)
 exports.updateCampground = async (req, res, next) => {
     try {
-        const campground = await Campground.findByIdAndUpdate(req.params.id, req.body, {
+        //Only reviews may set ratings
+        const { averageRating, ratingCount, ...fields } = req.body;
+        const campground = await Campground.findByIdAndUpdate(req.params.id, fields, {
             runValidators: true,
             returnDocument: 'after'
         });

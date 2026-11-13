@@ -805,7 +805,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Camp {{$timestamp}}\",\n  \"address\": \"1 Test Road, Bangkok 10330\",\n  \"tel\": \"020000000\"\n}",
+              "raw": "{\n  \"name\": \"Postman Camp {{$timestamp}}\",\n  \"address\": \"1 Test Road, Bangkok 10330\",\n  \"tel\": \"020000000\",\n  \"province\": \"Bangkok\",\n  \"region\": \"Central\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -856,7 +856,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{campgroundName}}\",\n  \"address\": \"Somewhere\",\n  \"tel\": \"020000000\"\n}",
+              "raw": "{\n  \"name\": \"{{campgroundName}}\",\n  \"address\": \"Somewhere\",\n  \"tel\": \"020000000\",\n  \"province\": \"Bangkok\",\n  \"region\": \"Central\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

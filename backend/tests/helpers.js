@@ -20,7 +20,7 @@ const createUser = async ({ role = 'user', ...overrides } = {}) => {
     return { user, token: user.getSignedJwtToken() };
 };
 
-//province/region/capacity are dropped by strict mode until the schema gains them
+//Valid campground with the required location fields; override any field per test
 const createCampground = (overrides = {}) => {
     const n = next();
     return Campground.create({
