@@ -805,7 +805,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Camp {{$timestamp}}\",\n  \"address\": \"1 Test Road, Bangkok 10330\",\n  \"tel\": \"020000000\",\n  \"province\": \"Bangkok\",\n  \"region\": \"Central\"\n}",
+              "raw": "{\n  \"name\": \"Postman Camp {{$timestamp}}\",\n  \"address\": \"1 Test Road, Bangkok 10330\",\n  \"tel\": \"0200000000\",\n  \"province\": \"Bangkok\",\n  \"region\": \"Central\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -856,7 +856,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{campgroundName}}\",\n  \"address\": \"Somewhere\",\n  \"tel\": \"020000000\",\n  \"province\": \"Bangkok\",\n  \"region\": \"Central\"\n}",
+              "raw": "{\n  \"name\": \"{{campgroundName}}\",\n  \"address\": \"Somewhere\",\n  \"tel\": \"0200000000\",\n  \"province\": \"Bangkok\",\n  \"region\": \"Central\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1009,7 +1009,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"User Camp\",\n  \"address\": \"Somewhere\",\n  \"tel\": \"020000000\"\n}",
+              "raw": "{\n  \"name\": \"User Camp\",\n  \"address\": \"Somewhere\",\n  \"tel\": \"0200000000\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1053,7 +1053,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Anon Camp\",\n  \"address\": \"Somewhere\",\n  \"tel\": \"020000000\"\n}",
+              "raw": "{\n  \"name\": \"Anon Camp\",\n  \"address\": \"Somewhere\",\n  \"tel\": \"0200000000\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1136,7 +1136,7 @@
                 "exec": [
                   "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
                   "",
-                  "pm.test(\"Tel updated\", () => pm.expect(pm.response.json().data.tel).to.eql(\"021111111\"));"
+                  "pm.test(\"Tel updated\", () => pm.expect(pm.response.json().data.tel).to.eql(\"0211111111\"));"
                 ]
               }
             }
@@ -1171,7 +1171,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tel\": \"021111111\"\n}",
+              "raw": "{\n  \"tel\": \"0211111111\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1223,7 +1223,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tel\": \"029999999\"\n}",
+              "raw": "{\n  \"tel\": \"0299999999\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1275,7 +1275,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tel\": \"029999999\"\n}",
+              "raw": "{\n  \"tel\": \"0299999999\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

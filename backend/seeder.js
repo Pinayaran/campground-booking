@@ -1,6 +1,6 @@
 // Seed / clear the database.
 //   node seeder -i   import sample users, campgrounds, bookings and reviews (clears existing data first)
-//   node seeder -d   destroy all users, campgrounds, bookings and reviews
+//   node seeder -d   destroy all users, campgrounds, bookings, reviews and revoked tokens
 const path = require('path');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
@@ -11,6 +11,7 @@ const User = require('./models/User');
 const Campground = require('./models/Campground');
 const Booking = require('./models/Booking');
 const Review = require('./models/Review');
+const RevokedToken = require('./models/RevokedToken');
 const { daysFromToday } = require('./utils/dates');
 
 //Demo accounts (password for all: 123456). Admins can only be created here.
@@ -24,63 +25,63 @@ const users = [
 //images stays empty: the frontend shows a placeholder.
 const campgrounds = [
     {
-        name: 'Doi Inthanon Camp', address: 'Ban Luang, Chom Thong, Chiang Mai 50160', tel: '053000001',
+        name: 'Doi Inthanon Camp', address: 'Ban Luang, Chom Thong, Chiang Mai 50160', tel: '0530000001',
         province: 'Chiang Mai', region: 'North', capacity: 12,
         description: 'Cool mountain campsite near the highest peak in Thailand, with misty mornings and waterfall walks.',
         facilities: ['Toilets', 'Hot showers', 'Parking', 'Fire pit'],
         rules: ['Quiet hours 22:00-06:00', 'No littering', 'Keep fires in the fire pit']
     },
     {
-        name: 'Khao Yai Pine Camp', address: 'Mu Si, Pak Chong, Nakhon Ratchasima 30130', tel: '044000002',
+        name: 'Khao Yai Pine Camp', address: 'Mu Si, Pak Chong, Nakhon Ratchasima 30130', tel: '0440000002',
         province: 'Nakhon Ratchasima', region: 'Northeast', capacity: 20,
         description: 'Pine forest campground at the edge of Khao Yai National Park, popular for wildlife spotting.',
         facilities: ['Toilets', 'Showers', 'Parking', 'Electricity', 'Barbecue area'],
         rules: ['Do not feed wildlife', 'Quiet hours 22:00-06:00', 'Pets must be on a leash']
     },
     {
-        name: 'Erawan Riverside Camp', address: 'Tha Kradan, Si Sawat, Kanchanaburi 71250', tel: '034000003',
+        name: 'Erawan Riverside Camp', address: 'Tha Kradan, Si Sawat, Kanchanaburi 71250', tel: '0340000003',
         province: 'Kanchanaburi', region: 'West', capacity: 15,
         description: 'Riverside campsite close to the Erawan waterfalls with shaded pitches and river swimming.',
         facilities: ['Toilets', 'Showers', 'Parking', 'Kayak rental'],
         rules: ['No glass bottles near the river', 'Quiet hours 22:00-06:00', 'Take your rubbish with you']
     },
     {
-        name: 'Doi Chang Coffee Camp', address: 'Wawee, Mae Suai, Chiang Rai 57180', tel: '053000004',
+        name: 'Doi Chang Coffee Camp', address: 'Wawee, Mae Suai, Chiang Rai 57180', tel: '0530000004',
         province: 'Chiang Rai', region: 'North', capacity: 8,
         description: 'Small hillside camp among coffee plantations with sunrise views over the valley.',
         facilities: ['Toilets', 'Coffee bar', 'Parking', 'Wi-Fi'],
         rules: ['Quiet hours 21:00-06:00', 'No open fires', 'Respect the plantation']
     },
     {
-        name: 'Phu Ruea Cloud Camp', address: 'Phu Ruea, Loei 42160', tel: '042000005',
+        name: 'Phu Ruea Cloud Camp', address: 'Phu Ruea, Loei 42160', tel: '0420000005',
         province: 'Loei', region: 'Northeast', capacity: 10,
         description: 'High-altitude campsite above the sea of mist, with cold nights and clear stars.',
         facilities: ['Toilets', 'Parking', 'Fire pit', 'Tent rental'],
         rules: ['Bring warm clothes', 'Quiet hours 22:00-06:00', 'Stay on marked trails']
     },
     {
-        name: 'Nang Rong Waterfall Camp', address: 'Pak Phli, Nakhon Nayok 26130', tel: '037000006',
+        name: 'Nang Rong Waterfall Camp', address: 'Pak Phli, Nakhon Nayok 26130', tel: '0370000006',
         province: 'Nakhon Nayok', region: 'Central', capacity: 18,
         description: 'Family-friendly camp near a waterfall, one hour from Bangkok.',
         facilities: ['Toilets', 'Showers', 'Parking', 'Playground', 'Shop'],
         rules: ['Children must be supervised near water', 'Quiet hours 22:00-06:00', 'No speakers']
     },
     {
-        name: 'Khao Chamao Forest Camp', address: 'Wang Chan, Rayong 21210', tel: '038000007',
+        name: 'Khao Chamao Forest Camp', address: 'Wang Chan, Rayong 21210', tel: '0380000007',
         province: 'Rayong', region: 'East', capacity: 14,
         description: 'Forest campground near the Khao Chamao waterfalls, shaded all day.',
         facilities: ['Toilets', 'Showers', 'Parking', 'Barbecue area'],
         rules: ['No fishing', 'Quiet hours 22:00-06:00', 'Keep fires in the barbecue area']
     },
     {
-        name: 'Sai Yok Bamboo Camp', address: 'Sai Yok, Kanchanaburi 71150', tel: '034000008',
+        name: 'Sai Yok Bamboo Camp', address: 'Sai Yok, Kanchanaburi 71150', tel: '0340000008',
         province: 'Kanchanaburi', region: 'West', capacity: 6,
         description: 'Quiet bamboo-raft camp beside the river with simple pitches.',
         facilities: ['Toilets', 'Parking', 'Raft rides'],
         rules: ['Life jackets required on rafts', 'Quiet hours 21:00-06:00', 'No littering']
     },
     {
-        name: 'Railay Beach Camp', address: 'Ao Nang, Mueang Krabi, Krabi 81000', tel: '075000009',
+        name: 'Railay Beach Camp', address: 'Ao Nang, Mueang Krabi, Krabi 81000', tel: '0750000009',
         province: 'Krabi', region: 'South', capacity: 5,
         description: 'Beachside campsite surrounded by limestone cliffs, reachable by longtail boat.',
         facilities: ['Toilets', 'Cold showers', 'Boat transfer'],
@@ -88,7 +89,7 @@ const campgrounds = [
     },
     //The "full" case: capacity 1 and booked on the day FULL_DAY_OFFSET days from today
     {
-        name: 'Mae Sa Hideaway', address: 'Mae Rim, Chiang Mai 50180', tel: '053000010',
+        name: 'Mae Sa Hideaway', address: 'Mae Rim, Chiang Mai 50180', tel: '0530000010',
         province: 'Chiang Mai', region: 'North', capacity: 1,
         description: 'A single private pitch by the stream. Very popular, so it is often fully booked.',
         facilities: ['Private toilet', 'Parking', 'Fire pit'],
@@ -143,6 +144,7 @@ const destroyData = async (log = true) => {
     await Booking.deleteMany();
     await Campground.deleteMany();
     await User.deleteMany();
+    await RevokedToken.deleteMany();
     if (log) console.log('Data destroyed');
 };
 

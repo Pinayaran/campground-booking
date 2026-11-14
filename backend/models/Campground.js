@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { telValidator } = require('../utils/tel');
+const { telValidator, stripSpaces } = require('../utils/tel');
 const { REGIONS } = require('../config/regions');
 
 //averageRating and ratingCount are maintained by reviews, not set through the API
@@ -18,7 +18,7 @@ const CampgroundSchema = new mongoose.Schema({
   tel: {
     type: String,
     required: [true, 'Please add a telephone number'],
-    trim: true,
+    set: stripSpaces,
     validate: telValidator
   },
   province: {

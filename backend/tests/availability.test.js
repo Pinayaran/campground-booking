@@ -165,4 +165,19 @@ describe('bookings respect capacity', () => {
 
         expect(res.status).toBe(200);
     });
+
+    test('PUT moving a booking onto a full night -> 400', async () => {
+        const camp = await createCampground({ capacity: 1 });
+        await createBooking({ campground: camp, checkInDate: daysFromToday(7) });
+        const { user, token } = await createUser();
+        const booking = await createBooking({ user, campground: camp, checkInDate: daysFromToday(10) });
+
+        const res = await request(app)
+            .put(`/api/v1/bookings/${booking._id}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ checkInDate: dateString(7) });
+
+        expect(res.status).toBe(400);
+        expect(res.body.message).toBe('Campground is fully booked for the selected dates');
+    });
 });
