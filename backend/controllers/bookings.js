@@ -59,6 +59,9 @@ exports.getBookings = async (req, res, next) => {
         });
     } catch (err) {
         console.log(err.stack);
+        if (err.name === 'CastError') {
+            return res.status(400).json({ success: false, message: 'Invalid campground id' });
+        }
         res.status(500).json({ success: false, message: 'Cannot find bookings' });
     }
 };
@@ -87,6 +90,9 @@ exports.getBooking = async (req, res, next) => {
         });
     } catch (err) {
         console.log(err.stack);
+        if (err.name === 'CastError') {
+            return res.status(400).json({ success: false, message: 'Invalid booking id' });
+        }
         res.status(500).json({ success: false, message: 'Cannot find booking' });
     }
 };
@@ -223,6 +229,9 @@ exports.deleteBooking = async (req, res, next) => {
         });
     } catch (err) {
         console.log(err.stack);
+        if (err.name === 'CastError') {
+            return res.status(400).json({ success: false, message: 'Invalid booking id' });
+        }
         res.status(500).json({ success: false, message: 'Cannot delete booking' });
     }
 };

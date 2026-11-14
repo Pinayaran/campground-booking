@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const RevokedToken = require('../models/RevokedToken');
 
 // @desc    Register user
 // @route   POST /api/v1/auth/register
@@ -57,19 +58,34 @@ exports.login = async (req, res, next) => {
     }
 };
 
-// @desc    Log user out / clear cookie
+// @desc    Log user out: revoke the current token and clear the cookie
 // @route   GET /api/v1/auth/logout
 // @access  Private
 exports.logout = async (req, res, next) => {
-    res.cookie('token', 'none', {
-        expires: new Date(Date.now() + 10 * 1000),
-        httpOnly: true
-    });
+    try {
+        const { jti, exp } = req.tokenPayload;
 
-    res.status(200).json({
-        success: true,
-        data: {}
-    });
+        //Stored until the token's own expiry; the TTL index removes it after that.
+        //upsert so logging out twice with the same token is harmless.
+        await RevokedToken.updateOne(
+            { jti },
+            { jti, expiresAt: new Date(exp * 1000) },
+            { upsert: true }
+        );
+
+        res.cookie('token', 'none', {
+            expires: new Date(Date.now() + 10 * 1000),
+            httpOnly: true
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {}
+        });
+    } catch (err) {
+        console.log(err.stack);
+        res.status(500).json({ success: false, message: 'Cannot log out' });
+    }
 };
 
 // @desc    Get current logged in user

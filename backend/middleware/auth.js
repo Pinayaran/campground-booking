@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const RevokedToken = require('../models/RevokedToken');
 
 // Protect routes
 exports.protect = async (req, res, next) => {
@@ -27,6 +28,14 @@ exports.protect = async (req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+        // Reject tokens revoked by logout (and old tokens without a jti, which can't be revoked)
+        if (!decoded.jti || await RevokedToken.exists({ jti: decoded.jti })) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authorized to access this route'
+            });
+        }
+
         // Get user from token
         req.user = await User.findById(decoded.id);
 
@@ -36,6 +45,9 @@ exports.protect = async (req, res, next) => {
                 message: 'Not authorized to access this route'
             });
         }
+
+        // Kept so logout can revoke this token
+        req.tokenPayload = decoded;
 
         next();
 

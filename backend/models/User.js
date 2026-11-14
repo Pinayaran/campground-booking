@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { telValidator, stripSpaces } = require('../utils/tel');
 
 const UserSchema = new mongoose.Schema({
   name: {
@@ -12,7 +14,8 @@ const UserSchema = new mongoose.Schema({
   tel: {
     type: String,
     required: [true, 'Please add a telephone number'],
-    trim: true
+    set: stripSpaces,
+    validate: telValidator
   },
 
   email: {
@@ -54,8 +57,10 @@ UserSchema.pre('save', async function () {
 });
 
 UserSchema.methods.getSignedJwtToken = function () {
+  //jwtid gives every token a unique id so logout can revoke just that token
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
+    expiresIn: process.env.JWT_EXPIRE,
+    jwtid: crypto.randomUUID()
   });
 };
 

@@ -1,6 +1,6 @@
 // Seed / clear the database.
 //   node seeder -i   import sample users, campgrounds and bookings (clears existing data first)
-//   node seeder -d   destroy all users, campgrounds, bookings (and reviews, once the model exists)
+//   node seeder -d   destroy all users, campgrounds, bookings, revoked tokens (and reviews, once the model exists)
 const path = require('path');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
@@ -10,6 +10,7 @@ dotenv.config({ path: path.join(__dirname, 'config', 'config.env'), quiet: true 
 const User = require('./models/User');
 const Campground = require('./models/Campground');
 const Booking = require('./models/Booking');
+const RevokedToken = require('./models/RevokedToken');
 
 //Review model is added by Lala (L6); clear it too when it exists
 let Review = null;
@@ -37,9 +38,9 @@ const users = [
 
 //Base fields only. Lala extends these with province/region/details/capacity (L8).
 const campgrounds = [
-    { name: 'Doi Inthanon Camp', address: 'Ban Luang, Chom Thong, Chiang Mai 50160', tel: '053000001' },
-    { name: 'Khao Yai Pine Camp', address: 'Mu Si, Pak Chong, Nakhon Ratchasima 30130', tel: '044000002' },
-    { name: 'Erawan Riverside Camp', address: 'Tha Kradan, Si Sawat, Kanchanaburi 71250', tel: '034000003' }
+    { name: 'Doi Inthanon Camp', address: 'Ban Luang, Chom Thong, Chiang Mai 50160', tel: '0530000001' },
+    { name: 'Khao Yai Pine Camp', address: 'Mu Si, Pak Chong, Nakhon Ratchasima 30130', tel: '0440000002' },
+    { name: 'Erawan Riverside Camp', address: 'Tha Kradan, Si Sawat, Kanchanaburi 71250', tel: '0340000003' }
 ];
 
 const importData = async () => {
@@ -72,6 +73,7 @@ const destroyData = async (log = true) => {
     await Booking.deleteMany();
     await Campground.deleteMany();
     await User.deleteMany();
+    await RevokedToken.deleteMany();
     if (log) console.log('Data destroyed');
 };
 

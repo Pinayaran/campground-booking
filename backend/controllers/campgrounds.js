@@ -1,5 +1,6 @@
 const Campground = require('../models/Campground');
 const Booking = require('../models/Booking');
+const { buildFilter } = require('../utils/queryFilter');
 
 // @desc    Get all campgrounds
 // @route   GET /api/v1/campgrounds
@@ -19,12 +20,8 @@ exports.getCampgrounds = async (req, res, next) => {
         //Loop over remove fields and delete them from reqQuery
         removeFields.forEach(param => delete reqQuery[param]);
 
-        //Create query string
-        let queryStr = JSON.stringify(reqQuery);
-
-        //Create operators ($gt, $gte, etc)
-        queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
-        const filter = JSON.parse(queryStr);
+        //Build the filter: only gt/gte/lt/lte/in operators, no raw $ keys (blocks NoSQL injection)
+        const filter = buildFilter(reqQuery);
 
         //finding resource
         query = Campground.find(filter);
