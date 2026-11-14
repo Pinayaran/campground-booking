@@ -1,6 +1,6 @@
 // Seed / clear the database.
 //   node seeder -i   import sample users, campgrounds and bookings (clears existing data first)
-//   node seeder -d   destroy all users, campgrounds, bookings (and reviews, once the model exists)
+//   node seeder -d   destroy all users, campgrounds, bookings, revoked tokens (and reviews, once the model exists)
 const path = require('path');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
@@ -10,6 +10,7 @@ dotenv.config({ path: path.join(__dirname, 'config', 'config.env'), quiet: true 
 const User = require('./models/User');
 const Campground = require('./models/Campground');
 const Booking = require('./models/Booking');
+const RevokedToken = require('./models/RevokedToken');
 
 //Review model is added by Lala (L6); clear it too when it exists
 let Review = null;
@@ -72,6 +73,7 @@ const destroyData = async (log = true) => {
     await Booking.deleteMany();
     await Campground.deleteMany();
     await User.deleteMany();
+    await RevokedToken.deleteMany();
     if (log) console.log('Data destroyed');
 };
 
