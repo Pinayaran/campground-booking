@@ -20,7 +20,7 @@ Group 2 (Teletubbies) requirements for SW Dev Project #2, based on the Campgroun
 ### Campground
 
 - `name`, `address`, `tel` (base requirements)
-- `location`, `province`, `region` (for filtering; additional requirement 1)
+- `province`, `region` (for filtering; additional requirement 1). A separate `location` field was dropped: `address` plus `province` cover it.
 - `description`, `facilities` (array), `rules` (array or text) (additional requirement 4)
 - `capacity` or the number of available spaces per day (for availability checks; additional requirement 2)
 - Recommended: `averageRating`, `ratingCount`, and images for display on the frontend.
@@ -248,7 +248,7 @@ Do this together before splitting up, so neither person has to rework anything l
 - [x] **Security:** `POST /auth/register` accepts `role` from the request body, so anyone can register as an admin. Remove `role` from the register controller and create admins only through `seeder.js`.
 - [x] Block date changes on bookings that are `completed` or `cancelled` in `PUT /bookings/:id` (return `400`).
 - [x] Optional: add `helmet` and a rate limiter (`express-rate-limit`) in `server.js`. The limit is 1000 requests per 10 minutes per IP, which is high enough for Postman runs.
-- [ ] Once L2 is merged, retest booking create and update against a full campground and expect `400`.
+- [x] Once L2 is merged, retest booking create and update against a full campground and expect `400`.
 - [ ] Clean up the test users left in the database by the smoke test (`node seeder -d` once the seeder exists).
 - [ ] Share the `MONGO_URI` with Lala privately (not in git). Atlas Network Access is set to `0.0.0.0/0`, so Lala can connect without extra setup.
 - [x] Open a PR from `dipsy/base-backend` to `main` and ask Lala to review it. (Merged as PR #1.)
@@ -257,78 +257,78 @@ Do this together before splitting up, so neither person has to rework anything l
 
 #### L1. Campground Model Fields (Additional 1, 2, 4)
 
-- [ ] Add to `models/Campground.js`: `location`, `province`, `region` (enum: e.g. North, Northeast, Central, East, West, South), `description`, `facilities` ([String]), `rules` ([String]), `capacity` (Number, min 1), `averageRating` (default 0), `ratingCount` (default 0), `images` ([String] URLs).
-- [ ] Add a virtual `reviews` field.
-- [ ] Add database indexes on `province`, `region`, and `name` so searches stay fast (helps the 3-second limit).
+- [x] Add to `models/Campground.js`: ~~`location`~~ (dropped in favour of `address` + `province`), `province`, `region` (enum: e.g. North, Northeast, Central, East, West, South), `description`, `facilities` ([String]), `rules` ([String]), `capacity` (Number, min 1), `averageRating` (default 0), `ratingCount` (default 0), `images` ([String] URLs).
+- [x] Add a virtual `reviews` field.
+- [x] Add database indexes on `province`, `region`, and `name` so searches stay fast (helps the 3-second limit).
 - **Coordinate:** wait for Dipsy's D4 to be merged first, or agree on who edits the file to avoid merge conflicts.
 
 #### L2. Availability (Additional 2)
 
 Start this early. Dipsy's booking endpoints depend on it.
 
-- [ ] `utils/availability.js`: `checkAvailability(campgroundId, checkInDate, nights, excludeBookingId?)`:
+- [x] `utils/availability.js`: `checkAvailability(campgroundId, checkInDate, nights, excludeBookingId?)`:
   - For each night of the requested stay, count the bookings that are not `cancelled` and overlap that night.
   - Return `{ available: boolean, remaining: number }`, where `remaining` is `capacity` minus the busiest night's count.
   - Skip `excludeBookingId`, so editing a booking doesn't count against itself.
-- [ ] `GET /campgrounds/:id/availability?date=YYYY-MM-DD` (public): return `{ date, capacity, booked, remaining, available }`.
+- [x] `GET /campgrounds/:id/availability?date=YYYY-MM-DD` (public): return `{ date, capacity, booked, remaining, available }`.
   - A missing or invalid date returns `400`; an unknown campground returns `404`.
 - **Done when:** with `capacity = 2` and two overlapping bookings, availability shows `0` remaining and Dipsy's booking create returns `400`.
 
 #### L3. Location Filter, Search, Pagination, and Sorting (Additional 1)
 
-- [ ] Extend `GET /campgrounds` to accept:
+- [x] Extend `GET /campgrounds` to accept:
   - `?province=Chiang Mai`, `?region=North` (exact match, case-insensitive)
   - `?search=pine` (case-insensitive regex match on `name`)
   - `?sort=name` or `?sort=-averageRating`
   - `?page=2&limit=10` (default limit 10, maximum 50)
   - `?date=YYYY-MM-DD` (optional): return only campgrounds with space on that date, reusing `checkAvailability`. The frontend date filter uses this.
-- [ ] Return `count`, `pagination: { next, prev }`, and `data`.
+- [x] Return `count`, `pagination: { next, prev }`, and `data`.
 - **Done when:** each parameter works by itself and combined with the others.
 
 #### L4. Update Personal Details (Additional 3)
 
-- [ ] `PUT /auth/updatedetails` (`protect`): accept only `name`, `tel`, and `email`, and ignore `role` and `password` if sent. If the email belongs to another user, return `400`.
-- [ ] `PUT /auth/updatepassword` (`protect`): require `currentPassword` and `newPassword`. A wrong current password returns `401`. Save with `user.save()` so the hash hook runs, then return a new token.
+- [x] `PUT /auth/updatedetails` (`protect`): accept only `name`, `tel`, and `email`, and ignore `role` and `password` if sent. If the email belongs to another user, return `400`.
+- [x] `PUT /auth/updatepassword` (`protect`): require `currentPassword` and `newPassword`. A wrong current password returns `401`. Save with `user.save()` so the hash hook runs, then return a new token.
 - **Done when:** the user can log in with the new password but not the old one.
 
 #### L5. Campground Details (Additional 4)
 
-- [ ] Extend `GET /campgrounds/:id` to return all detail fields plus the latest reviews (populate the `reviews` virtual with the reviewer's name, newest first, e.g. the latest 10).
+- [x] Extend `GET /campgrounds/:id` to return all detail fields plus the latest reviews (populate the `reviews` virtual with the reviewer's name, newest first, e.g. the latest 10).
 - **Done when:** one request returns everything a detail page would need.
 
 #### L6. Reviews and Ratings (Additional 5–6)
 
-- [ ] `models/Review.js`: `user`, `campground`, `booking` (refs), `rating` (integer 1–5, required), `comment` (max length e.g. 500), `createdAt`.
+- [x] `models/Review.js`: `user`, `campground`, `booking` (refs), `rating` (integer 1–5, required), `comment` (max length e.g. 500), `createdAt`.
   - Add a unique index on `booking` (one review per booking).
   - Add a static `calcAverageRating(campgroundId)` that updates the campground's `averageRating` (rounded to 1 decimal) and `ratingCount`. Call it after saving and after deleting a review.
-- [ ] `POST /campgrounds/:campgroundId/reviews` (`protect`), body `{ bookingId, rating, comment }`:
+- [x] `POST /campgrounds/:campgroundId/reviews` (`protect`), body `{ bookingId, rating, comment }`:
   - The booking must belong to `req.user`, otherwise `403`.
   - The booking must be for this campground, otherwise `400`.
   - The stay must have ended (check-out date is in the past, or `status = completed`), otherwise `400` "You can only review after your stay".
   - A booking that already has a review returns `400`.
-- [ ] `GET /campgrounds/:campgroundId/reviews` (public): paginated, newest first.
-- [ ] `PUT /reviews/:id` and `DELETE /reviews/:id` (`protect`): the review owner can update or delete their own review, and an admin can delete any review. Recalculate the average after either change.
+- [x] `GET /campgrounds/:campgroundId/reviews` (public): paginated, newest first.
+- [x] `PUT /reviews/:id` and `DELETE /reviews/:id` (`protect`): the review owner can update or delete their own review, and an admin can delete any review. Recalculate the average after either change.
 - **Done when:** the average updates correctly after adding, editing, and deleting reviews, and all the error cases return the right codes.
 
 #### L7. Frontend Main Page (Additional 7)
 
 The frontend skeleton can start on day 1 using fake data, then switch to the real API once L3 is ready.
 
-- [ ] Choose a stack (plain HTML/JS, or React/Next.js) and set up the backend's `cors` to allow the frontend's origin.
-- [ ] **Navbar:** logo, Home, My Bookings, Profile. Show Login/Register when logged out and Logout when logged in, based on the token in `localStorage` or the cookie and a call to `/auth/me`.
-- [ ] **Login/Register forms** (simple, so the navbar state can actually be shown working).
-- [ ] **Campground cards:** image, name, province/region, average rating as stars, and rating count.
-- [ ] **Search bar:** name search with a short delay (debounce), calling `GET /campgrounds?search=`.
-- [ ] **Filters:** province/region dropdown and a date picker, which add `?province=`, `?region=`, and `?date=` to the request.
-- [ ] Pagination controls, plus loading, empty ("No campgrounds found"), and error states.
-- [ ] Make it usable on mobile.
+- [x] Choose a stack (Next.js App Router + Tailwind CSS, in `frontend/`) and set up the backend's `cors` to allow the frontend's origin.
+- [x] **Navbar:** logo, Home, My Bookings, Profile. Show Login/Register when logged out and Logout when logged in, based on the token in `localStorage` or the cookie and a call to `/auth/me`.
+- [x] **Login/Register forms** (simple, so the navbar state can actually be shown working).
+- [x] **Campground cards:** image, name, province/region, average rating as stars, and rating count.
+- [x] **Search bar:** name search with a short delay (debounce), calling `GET /campgrounds?search=`.
+- [x] **Filters:** province/region dropdown and a date picker, which add `?province=`, `?region=`, and `?date=` to the request.
+- [x] Pagination controls, plus loading, empty ("No campgrounds found"), and error states.
+- [x] Make it usable on mobile.
 - **Done when:** the page shows real data from the backend, and search and filters change the results.
 
 #### L8. Seed Data and Postman (Additional Part)
 
-- [ ] Add 8–12 campgrounds to `seeder.js` across at least 4 provinces and 3 regions, with every detail field filled and one campground at `capacity = 1` for testing "full".
-- [ ] Add a few reviews for the past bookings Dipsy seeded.
-- [ ] Postman folders **Campground Search**, **Availability**, **Profile**, and **Reviews**, with tests for:
+- [x] Add 8–12 campgrounds to `seeder.js` across at least 4 provinces and 3 regions, with every detail field filled and one campground at `capacity = 1` for testing "full".
+- [x] Add a few reviews for the past bookings Dipsy seeded.
+- [x] Postman folders **Campground Search**, **Availability**, **Profile**, and **Reviews**, with tests for:
   - Filtering by province or region, searching, paging, and the date filter
   - Availability on a fully booked date → `remaining: 0`
   - Updating the email to one already in use → `400`
@@ -337,6 +337,8 @@ The frontend skeleton can start on day 1 using fake data, then switch to the rea
   - Reviewing someone else's booking → `403`
   - Reviewing the same booking twice → `400`
   - A rating of 0 or 6 → `400`
+
+> **Status (2026-11-14):** L1–L8 are done on branch `feat/additional-feature`. The backend has a Jest + supertest suite (in-memory MongoDB, `npm test` in `backend/`), and the Postman collection gained the Campground Search, Availability, Profile and Reviews folders; it passes in full against a freshly seeded database, with every response under 3 seconds. `node seeder -i` now creates 10 campgrounds across 8 provinces and all 6 regions, including Mae Sa Hideaway (capacity 1), which is fully booked 7 days from the seed date. The frontend in `frontend/` has the main campground page (search, province/region/date filters, pagination), a navbar with login and register, and read-only My Bookings and Profile pages. Booking `checkInDate` must now be a strict `YYYY-MM-DD` date. A separate `location` field was dropped: `address` plus `province` cover it.
 
 ### Handoff Points
 
@@ -361,9 +363,9 @@ The frontend skeleton can start on day 1 using fake data, then switch to the rea
 
 ### Final Checklist (Together)
 
-- [ ] Every endpoint in Section 2 has at least one success and one error request in Postman.
-- [ ] One combined Postman collection plus its environment is exported to `postman/`.
-- [ ] Every request responds in under 3 seconds (check Postman's response time; add `pm.expect(pm.response.responseTime).to.be.below(3000)` tests).
-- [ ] `node seeder -i` on an empty database produces a working demo.
-- [ ] The README explains setup, the environment variables, how to seed, and how to run the backend and frontend.
-- [ ] No secrets are committed (`config.env` is in `.gitignore`).
+- [ ] Every endpoint in Section 2 has at least one success and one error request in Postman. Still missing an error request: `GET /auth/logout`, `GET /bookings` (no token → 401), and `GET /reviews`.
+- [x] One combined Postman collection plus its environment is exported to `postman/`.
+- [x] Every request responds in under 3 seconds (check Postman's response time; add `pm.expect(pm.response.responseTime).to.be.below(3000)` tests).
+- [x] `node seeder -i` on an empty database produces a working demo.
+- [x] The README explains setup, the environment variables, how to seed, and how to run the backend and frontend.
+- [x] No secrets are committed (`config.env` is in `.gitignore`).

@@ -14,11 +14,13 @@ node seeder -i     # load sample data (node seeder -d clears it)
 npm run dev        # http://localhost:5000/api/v1
 ```
 
+The seeder wipes the database it connects to, so it refuses a non-local `MONGO_URI` unless you add `--force` (e.g. `node seeder -i --force` for the shared Atlas cluster).
+
 Seeded accounts (password `123456` for all): `admin@gmail.com` (admin), `user1@gmail.com`, and `user2@gmail.com`. Admin accounts can only be created by the seeder; `POST /auth/register` always creates a regular user.
 
 ## Postman
 
-Import both files in [postman/](./postman/), select the **Campground Booking** environment, run `node seeder -i`, and then run the collection in order. The login requests save `{{TOKEN}}` automatically.
+Import both files in [postman/](./postman/), select the **Campground Booking** environment, run `node seeder -i` (add `--force` for the shared Atlas cluster), and then run the collection in order. The login requests save `{{TOKEN}}` automatically.
 
 ## Frontend Setup
 
@@ -53,7 +55,7 @@ node seeder -i
 npx newman run ../postman/campground-booking.postman_collection.json -e ../postman/campground-booking.postman_environment.json
 ```
 
-Every request also checks that the response arrives in under 3 seconds. The collection expects freshly seeded data, so run `node seeder -i` before each run.
+Every request also checks that the response arrives in under 3 seconds. The collection expects freshly seeded data, so run `node seeder -i` before each run (add `--force` when `MONGO_URI` is not local).
 
 ## API Endpoints
 
