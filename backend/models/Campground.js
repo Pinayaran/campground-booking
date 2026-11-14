@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { telValidator } = require('../utils/tel');
+const { telValidator, stripSpaces } = require('../utils/tel');
 
 //Base fields (D4). Lala adds location/province/region, description, facilities,
 //rules, capacity, averageRating, ratingCount, images and the reviews virtual (L1).
@@ -18,7 +18,7 @@ const CampgroundSchema = new mongoose.Schema({
   tel: {
     type: String,
     required: [true, 'Please add a telephone number'],
-    trim: true,
+    set: stripSpaces,
     validate: telValidator
   },
   createdAt: {

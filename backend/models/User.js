@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { telValidator } = require('../utils/tel');
+const { telValidator, stripSpaces } = require('../utils/tel');
 
 const UserSchema = new mongoose.Schema({
   name: {
@@ -14,7 +14,7 @@ const UserSchema = new mongoose.Schema({
   tel: {
     type: String,
     required: [true, 'Please add a telephone number'],
-    trim: true,
+    set: stripSpaces,
     validate: telValidator
   },
 

@@ -1,14 +1,11 @@
-//Telephone number check shared by User and Campground.
-//Allows an optional leading +, then digits with optional spaces, dashes or parentheses,
-//e.g. 0812345678, 02-123-4567, +66 81 234 5678. Must contain 9 to 15 digits.
-const isValidTel = value => {
-    if (typeof value !== 'string') return false;
-    if (!/^\+?[0-9 \-()]+$/.test(value)) return false;
-    const digits = value.replace(/\D/g, '').length;
-    return digits >= 9 && digits <= 15;
-};
+//Telephone number rules shared by User and Campground.
+//Spaces are removed automatically (e.g. "081 234 5678" -> "0812345678"),
+//then the value must be exactly 10 digits (no dashes, parentheses or +).
+exports.stripSpaces = value => (typeof value === 'string' ? value.replace(/\s/g, '') : value);
+
+const isValidTel = value => typeof value === 'string' && /^[0-9]{10}$/.test(value);
 
 exports.telValidator = {
     validator: isValidTel,
-    message: 'Please add a valid telephone number (9-15 digits; spaces, dashes, parentheses and a leading + are allowed)'
+    message: 'Please add a valid telephone number (exactly 10 digits)'
 };
