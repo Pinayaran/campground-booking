@@ -53,6 +53,24 @@ describe('GET /api/v1/campgrounds filters', () => {
         expect(names(res)).not.toContain('Krabi Cliff Camp');
     });
 
+    test('date does not overwrite an _id filter', async () => {
+        const full = await Campground.findOne({ name: 'Krabi Cliff Camp' });
+        const free = await Campground.findOne({ name: 'Doi Inthanon Camp' });
+
+        const onFull = await request(app).get(`/api/v1/campgrounds?_id=${full.id}&date=${day7()}`);
+        const onFree = await request(app).get(`/api/v1/campgrounds?_id=${free.id}&date=${day7()}`);
+
+        expect(onFull.body.count).toBe(0);
+        expect(onFree.body.count).toBe(1);
+        expect(names(onFree)).toEqual(['Doi Inthanon Camp']);
+    });
+
+    test('search does not overwrite a name filter', async () => {
+        const res = await request(app).get('/api/v1/campgrounds?name=Doi%20Inthanon%20Camp&search=pine');
+        expect(res.status).toBe(200);
+        expect(res.body.count).toBe(0);
+    });
+
     test('invalid date -> 400', async () => {
         const res = await request(app).get('/api/v1/campgrounds?date=tomorrow');
         expect(res.status).toBe(400);

@@ -46,6 +46,14 @@ exports.protect = async (req, res, next) => {
             });
         }
 
+        // Tokens issued before the last password change are no longer valid
+        if (req.user.passwordChangedAt && decoded.iat * 1000 < req.user.passwordChangedAt.getTime()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authorized to access this route'
+            });
+        }
+
         // Kept so logout can revoke this token
         req.tokenPayload = decoded;
 

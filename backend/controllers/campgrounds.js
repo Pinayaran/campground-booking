@@ -32,7 +32,7 @@ exports.getCampgrounds = async (req, res, next) => {
         removeFields.forEach(param => delete reqQuery[param]);
 
         //Build the filter: only gt/gte/lt/lte/in operators, no raw $ keys (blocks NoSQL injection)
-        const filter = { ...buildFilter(reqQuery), ...buildCampgroundFilter(req.query) };
+        const conditions = [buildFilter(reqQuery), buildCampgroundFilter(req.query)];
 
         //Hide campgrounds with no space left on the requested night
         if (req.query.date !== undefined) {
@@ -40,8 +40,10 @@ exports.getCampgrounds = async (req, res, next) => {
             if (!date) {
                 return res.status(400).json({ success: false, message: 'Please provide a valid date (YYYY-MM-DD)' });
             }
-            filter._id = { $nin: await findFullCampgroundIds(date) };
+            conditions.push({ _id: { $nin: await findFullCampgroundIds(date) } });
         }
+
+        const filter = { $and: conditions };
 
         //finding resource
         query = Campground.find(filter);

@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const app = require('../app');
 const { createUser } = require('./helpers');
@@ -125,6 +127,22 @@ describe('PUT /api/v1/auth/updatepassword', () => {
         const res = await put(token, { currentPassword: 'password123', newPassword: 'newpass456' });
 
         expect((await me(token)).status).toBe(401);
+        expect((await me(res.body.token)).status).toBe(200);
+    });
+
+    test('changing the password logs out older sessions but not the new token', async () => {
+        const { user, token } = await createUser();
+        const olderSession = jwt.sign(
+            { id: user._id, iat: Math.floor(Date.now() / 1000) - 60 },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h', jwtid: crypto.randomUUID() }
+        );
+        expect((await me(olderSession)).status).toBe(200);
+
+        const res = await put(token, { currentPassword: 'password123', newPassword: 'newpass456' });
+
+        expect(res.status).toBe(200);
+        expect((await me(olderSession)).status).toBe(401);
         expect((await me(res.body.token)).status).toBe(200);
     });
 

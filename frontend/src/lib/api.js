@@ -1,13 +1,13 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api/v1';
 
-export async function apiFetch(path, { method = 'GET', body, token } = {}) {
+export async function apiFetch(path, { method = 'GET', body } = {}) {
   const headers = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${API_URL}${path}`, {
     method,
     headers,
+    credentials: 'include',
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const data = await res.json();
@@ -39,8 +39,8 @@ export const login = (email, password) =>
 export const register = ({ name, tel, email, password }) =>
   apiFetch('/auth/register', { method: 'POST', body: { name, tel, email, password } });
 
-export const getMe = (token) => apiFetch('/auth/me', { token }).then((res) => res.data);
+export const getMe = () => apiFetch('/auth/me').then((res) => res.data);
 
-export const logout = (token) => apiFetch('/auth/logout', { token }).then(() => undefined);
+export const logout = () => apiFetch('/auth/logout').then(() => undefined);
 
-export const getMyBookings = (token) => apiFetch('/bookings', { token }).then((res) => res.data);
+export const getMyBookings = () => apiFetch('/bookings').then((res) => res.data);

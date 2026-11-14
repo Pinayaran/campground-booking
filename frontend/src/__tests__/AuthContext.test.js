@@ -11,7 +11,12 @@ function Probe() {
   useEffect(() => {
     captured.auth = auth;
   });
-  return <p>{auth.loading ? 'loading' : auth.user ? auth.user.name : 'anonymous'}</p>;
+  return (
+    <>
+      <p>{auth.loading ? 'loading' : auth.user ? auth.user.name : 'anonymous'}</p>
+      <p>{auth.error ? `error: ${auth.error}` : 'no error'}</p>
+    </>
+  );
 }
 
 function renderProvider() {
@@ -27,41 +32,39 @@ beforeEach(() => {
   jest.resetAllMocks();
 });
 
-test('login stores the token and loads the user', async () => {
-  api.login.mockResolvedValue({ token: 'abc' });
-  api.getMe.mockResolvedValue({ name: 'Alice' });
+test('login loads the user with getMe afterwards', async () => {
+  api.getMe.mockRejectedValueOnce(Object.assign(new Error('Not authorized'), { status: 401 }));
+  api.login.mockResolvedValue({ token: 'ignored' });
   renderProvider();
   await screen.findByText('anonymous');
 
+  api.getMe.mockResolvedValue({ name: 'Alice' });
   await act(() => captured.auth.login('a@b.com', 'pw'));
 
   expect(api.login).toHaveBeenCalledWith('a@b.com', 'pw');
-  expect(api.getMe).toHaveBeenCalledWith('abc');
-  expect(localStorage.getItem('token')).toBe('abc');
+  expect(api.getMe).toHaveBeenCalledTimes(2);
   expect(await screen.findByText('Alice')).toBeInTheDocument();
+  expect(screen.getByText('no error')).toBeInTheDocument();
 });
 
-test('a stored token that getMe rejects with 401 is cleared', async () => {
-  localStorage.setItem('token', 'stale');
+test('getMe 401 on mount means logged out without an error', async () => {
   api.getMe.mockRejectedValue(Object.assign(new Error('Not authorized'), { status: 401 }));
   renderProvider();
 
   expect(screen.getByText('loading')).toBeInTheDocument();
   await screen.findByText('anonymous');
-  expect(localStorage.getItem('token')).toBeNull();
+  expect(screen.getByText('no error')).toBeInTheDocument();
 });
 
-test('a network error on mount keeps the stored token', async () => {
-  localStorage.setItem('token', 'abc');
+test('a network error on mount sets an error and no user', async () => {
   api.getMe.mockRejectedValue(new Error('Failed to fetch'));
   renderProvider();
 
   await screen.findByText('anonymous');
-  expect(localStorage.getItem('token')).toBe('abc');
+  expect(screen.getByText(/^error: Could not reach the server/)).toBeInTheDocument();
 });
 
-test('logout clears the token and user', async () => {
-  localStorage.setItem('token', 'abc');
+test('logout clears the user', async () => {
   api.getMe.mockResolvedValue({ name: 'Alice' });
   api.logout.mockResolvedValue();
   renderProvider();
@@ -69,13 +72,11 @@ test('logout clears the token and user', async () => {
 
   await act(() => captured.auth.logout());
 
-  expect(api.logout).toHaveBeenCalledWith('abc');
-  expect(localStorage.getItem('token')).toBeNull();
+  expect(api.logout).toHaveBeenCalled();
   await waitFor(() => expect(screen.getByText('anonymous')).toBeInTheDocument());
 });
 
-test('logout clears local state even when the server call fails', async () => {
-  localStorage.setItem('token', 'abc');
+test('logout clears the user even when the server call fails', async () => {
   api.getMe.mockResolvedValue({ name: 'Alice' });
   api.logout.mockRejectedValue(new Error('down'));
   renderProvider();
@@ -83,6 +84,14 @@ test('logout clears local state even when the server call fails', async () => {
 
   await act(() => captured.auth.logout());
 
-  expect(localStorage.getItem('token')).toBeNull();
   expect(screen.getByText('anonymous')).toBeInTheDocument();
+});
+
+test('an old localStorage token is removed on mount', async () => {
+  localStorage.setItem('token', 'old');
+  api.getMe.mockResolvedValue({ name: 'Alice' });
+  renderProvider();
+
+  await screen.findByText('Alice');
+  expect(localStorage.getItem('token')).toBeNull();
 });

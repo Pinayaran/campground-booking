@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const Campground = require('../models/Campground');
+const Review = require('../models/Review');
 const { checkAvailability } = require('../utils/availability');
 const { parseDateOnly } = require('../utils/dates');
 
@@ -221,6 +222,10 @@ exports.deleteBooking = async (req, res, next) => {
         if (!isOwnerOrAdmin(booking, req.user)) {
             return res.status(403).json({ success: false, message: `User ${req.user.id} is not authorized to delete this booking` });
         }
+
+        //Document deleteOne on the review so its hook recalculates the campground rating
+        const review = await Review.findOne({ booking: booking._id });
+        if (review) await review.deleteOne();
 
         await booking.deleteOne();
 

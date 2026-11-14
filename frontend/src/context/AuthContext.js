@@ -5,25 +5,28 @@ import * as api from '@/lib/api';
 
 export const AuthContext = createContext(null);
 
-const TOKEN_KEY = 'token';
+const SERVER_ERROR = 'Could not reach the server. Please try again later.';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let ignore = false;
-    const stored = localStorage.getItem(TOKEN_KEY);
-    const check = stored ? api.getMe(stored) : Promise.resolve(null);
-    check
+    try {
+      // older versions kept the token here; the session now lives in the httpOnly cookie
+      localStorage.removeItem('token');
+    } catch {
+      // storage may be unavailable
+    }
+    api
+      .getMe()
       .then((me) => {
-        if (ignore || !me) return;
-        setToken(stored);
-        setUser(me);
+        if (!ignore) setUser(me);
       })
       .catch((err) => {
-        if (err.status === 401) localStorage.removeItem(TOKEN_KEY);
+        if (!ignore && err.status !== 401) setError(SERVER_ERROR);
       })
       .finally(() => {
         if (!ignore) setLoading(false);
@@ -33,37 +36,40 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const startSession = useCallback(async (newToken) => {
-    const me = await api.getMe(newToken);
-    localStorage.setItem(TOKEN_KEY, newToken);
-    setToken(newToken);
+  const startSession = useCallback(async () => {
+    const me = await api.getMe();
     setUser(me);
+    setError('');
   }, []);
 
   const login = useCallback(
-    async (email, password) => startSession((await api.login(email, password)).token),
+    async (email, password) => {
+      await api.login(email, password);
+      await startSession();
+    },
     [startSession]
   );
 
   const register = useCallback(
-    async (fields) => startSession((await api.register(fields)).token),
+    async (fields) => {
+      await api.register(fields);
+      await startSession();
+    },
     [startSession]
   );
 
   const logout = useCallback(async () => {
     try {
-      await api.logout(token);
+      await api.logout();
     } catch {
-      // the token is cleared locally regardless
+      // the user is cleared locally regardless
     }
-    localStorage.removeItem(TOKEN_KEY);
-    setToken(null);
     setUser(null);
-  }, [token]);
+  }, []);
 
   const value = useMemo(
-    () => ({ user, token, loading, login, register, logout }),
-    [user, token, loading, login, register, logout]
+    () => ({ user, loading, error, login, register, logout }),
+    [user, loading, error, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

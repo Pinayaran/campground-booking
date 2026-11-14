@@ -43,6 +43,8 @@ const UserSchema = new mongoose.Schema({
     select: false
   },
 
+  passwordChangedAt: Date,
+
   createdAt: {
     type: Date,
     default: Date.now
@@ -52,6 +54,8 @@ const UserSchema = new mongoose.Schema({
 //Hash password only when it is new or changed (so updatepassword works and other saves don't re-hash)
 UserSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
+  //Back-dated one second so the token issued in the same response stays valid (JWT iat is in whole seconds)
+  if (!this.isNew) this.passwordChangedAt = Date.now() - 1000;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });

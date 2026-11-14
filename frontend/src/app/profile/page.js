@@ -5,12 +5,22 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, error } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/login');
-  }, [loading, user, router]);
+    if (!loading && !error && !user) router.replace('/login');
+  }, [loading, error, user, router]);
+
+  if (error) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-8">
+        <p role="alert" className="text-red-700">
+          {error}
+        </p>
+      </main>
+    );
+  }
 
   if (loading || !user) return null;
 

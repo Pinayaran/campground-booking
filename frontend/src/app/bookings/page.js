@@ -6,40 +6,43 @@ import { useAuth } from '@/context/AuthContext';
 import { getMyBookings } from '@/lib/api';
 
 export default function BookingsPage() {
-  const { user, token, loading } = useAuth();
+  const { user, loading, error: authError } = useAuth();
   const router = useRouter();
   const [bookings, setBookings] = useState(null);
-  const [error, setError] = useState('');
+  const [fetchError, setFetchError] = useState('');
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || authError) return;
     if (!user) {
       router.replace('/login');
       return;
     }
     let ignore = false;
-    getMyBookings(token)
+    getMyBookings()
       .then((res) => {
         if (!ignore) setBookings(res);
       })
       .catch((err) => {
-        if (!ignore) setError(err.message);
+        if (!ignore) setFetchError(err.message);
       });
     return () => {
       ignore = true;
     };
-  }, [loading, user, token, router]);
+  }, [loading, authError, user, router]);
+
+  const error = authError || fetchError;
+  const isAdmin = user?.role === 'admin';
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
-      <h1 className="text-3xl font-bold text-emerald-800">My Bookings</h1>
+      <h1 className="text-3xl font-bold text-emerald-800">{isAdmin ? 'All Bookings' : 'My Bookings'}</h1>
       {error && (
         <p role="alert" className="text-red-700">
           {error}
         </p>
       )}
       {!error && bookings === null && <p>Loading...</p>}
-      {bookings?.length === 0 && <p>You have no bookings yet.</p>}
+      {bookings?.length === 0 && <p>{isAdmin ? 'There are no bookings yet.' : 'You have no bookings yet.'}</p>}
       <ul className="flex flex-col gap-3">
         {bookings?.map((booking) => (
           <li key={booking._id} className="rounded border border-gray-200 p-4">

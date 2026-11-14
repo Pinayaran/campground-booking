@@ -1,6 +1,7 @@
 // Seed / clear the database.
 //   node seeder -i   import sample users, campgrounds, bookings and reviews (clears existing data first)
 //   node seeder -d   destroy all users, campgrounds, bookings, reviews and revoked tokens
+//A non-local MONGO_URI is refused unless --force is added, e.g. node seeder -i --force
 const path = require('path');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
@@ -13,6 +14,7 @@ const Booking = require('./models/Booking');
 const Review = require('./models/Review');
 const RevokedToken = require('./models/RevokedToken');
 const { daysFromToday } = require('./utils/dates');
+const { isLocalMongoUri, describeMongoHosts } = require('./utils/mongoUri');
 
 //Demo accounts (password for all: 123456). Admins can only be created here.
 const users = [
@@ -151,7 +153,12 @@ const destroyData = async (log = true) => {
 const run = async () => {
     const flag = process.argv[2];
     if (flag !== '-i' && flag !== '-d') {
-        console.log('Usage: node seeder -i (import) | node seeder -d (destroy)');
+        console.log('Usage: node seeder -i (import) | node seeder -d (destroy) [--force to allow a non-local database]');
+        process.exit(1);
+    }
+
+    if (!isLocalMongoUri(process.env.MONGO_URI) && !process.argv.includes('--force')) {
+        console.log(`Refusing to seed a non-local database (${describeMongoHosts(process.env.MONGO_URI)}). Re-run with --force if you really mean it, e.g. node seeder -i --force`);
         process.exit(1);
     }
 

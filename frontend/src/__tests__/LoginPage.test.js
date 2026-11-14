@@ -8,7 +8,7 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push, replace: jest.fn
 
 function renderPage(login) {
   return render(
-    <AuthContext.Provider value={{ user: null, token: null, loading: false, login }}>
+    <AuthContext.Provider value={{ user: null, loading: false, login }}>
       <LoginPage />
     </AuthContext.Provider>
   );

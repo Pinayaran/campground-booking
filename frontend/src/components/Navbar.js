@@ -20,7 +20,7 @@ export default function Navbar() {
         {!loading && user && (
           <>
             <Link href="/bookings" className={linkClass}>
-              My Bookings
+              {user.role === 'admin' ? 'All Bookings' : 'My Bookings'}
             </Link>
             <Link href="/profile" className={linkClass}>
               Profile

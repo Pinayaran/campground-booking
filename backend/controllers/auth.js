@@ -69,7 +69,8 @@ exports.logout = async (req, res, next) => {
 
         res.cookie('token', 'none', {
             expires: new Date(Date.now() + 10 * 1000),
-            httpOnly: true
+            httpOnly: true,
+            sameSite: 'lax'
         });
 
         res.status(200).json({
@@ -179,7 +180,8 @@ const sendTokenResponse = (user, statusCode, res) => {
             Date.now() +
             process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
         ),
-        httpOnly: true
+        httpOnly: true,
+        sameSite: 'lax'
     };
 
     if (process.env.NODE_ENV === 'production') {
