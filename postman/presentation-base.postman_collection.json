@@ -1,0 +1,2016 @@
+{
+	"info": {
+		"name": "Campground Booking - Presentation (Base 1-12)",
+		"description": "Base requirements in presentation order (steps 1-12).\n\nRun `node seeder -d` then `node seeder -i`, start the server, select the **Campground Booking** environment, then run the whole collection in Postman Runner.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "01 Register + validation",
+			"item": [
+				{
+					"name": "Register new user (role in body is ignored)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+									"const json = pm.response.json();",
+									"pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+									"pm.environment.set(\"newUserToken\", json.token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/auth/register",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Postman User\",\n  \"tel\": \"0899999999\",\n  \"email\": \"postman{{$timestamp}}@test.com\",\n  \"password\": \"123456\",\n  \"role\": \"admin\"\n}"
+						}
+					}
+				},
+				{
+					"name": "New user is a regular user, not admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Role is user even though role=admin was sent\", () => pm.expect(pm.response.json().data.role).to.eql(\"user\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/auth/me",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{newUserToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Register duplicate email -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/auth/register",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Dup\",\n  \"tel\": \"0811111111\",\n  \"email\": \"user1@gmail.com\",\n  \"password\": \"123456\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Register missing fields -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/auth/register",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"nofields@test.com\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Register with invalid telephone -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));",
+									"pm.test(\"Mentions telephone\", () => pm.expect(pm.response.json().message).to.match(/telephone/i));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/auth/register",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Bad Tel\",\n  \"tel\": \"call-me\",\n  \"email\": \"badtel@test.com\",\n  \"password\": \"123456\"\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "02 Log in",
+			"item": [
+				{
+					"name": "Login wrong password -> 401",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/auth/login",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user1@gmail.com\",\n  \"password\": \"wrongpassword\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Login missing password -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/auth/login",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user1@gmail.com\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Login user1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"const json = pm.response.json();",
+									"pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+									"pm.environment.set(\"user1Token\", json.token);",
+									"pm.environment.set(\"TOKEN\", json.token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/auth/login",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user1@gmail.com\",\n  \"password\": \"123456\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Get me (user1)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"const json = pm.response.json();",
+									"pm.test(\"Is user1\", () => pm.expect(json.data.email).to.eql(\"user1@gmail.com\"));",
+									"pm.test(\"Password is not returned\", () => pm.expect(json.data).to.not.have.property(\"password\"));",
+									"pm.environment.set(\"user1Id\", json.data._id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/auth/me",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Login user2 (second user for the ownership checks)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"const json = pm.response.json();",
+									"pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+									"pm.environment.set(\"user2Token\", json.token);",
+									"pm.environment.set(\"TOKEN\", json.token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/auth/login",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user2@gmail.com\",\n  \"password\": \"123456\"\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "03 View campgrounds",
+			"item": [
+				{
+					"name": "Get all campgrounds (public, no login)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"const json = pm.response.json();",
+									"pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\").that.is.not.empty);",
+									"pm.test(\"Each has name, address and tel\", () => json.data.forEach(c => { pm.expect(c).to.have.property(\"name\"); pm.expect(c).to.have.property(\"address\"); pm.expect(c).to.have.property(\"tel\"); }));",
+									"//Book the campground with the most spaces so both users fit on the same dates",
+									"const pick = json.data.reduce((a, b) => ((b.capacity || 0) > (a.capacity || 0) ? b : a));",
+									"pm.environment.set(\"campgroundId\", pick._id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/campgrounds?limit=50",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "Get single campground (public)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Correct campground\", () => pm.expect(pm.response.json().data._id).to.eql(pm.environment.get(\"campgroundId\")));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/campgrounds/{{campgroundId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"{{campgroundId}}"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "Get unknown campground -> 404",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/campgrounds/000000000000000000000000",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"000000000000000000000000"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "04 Create booking + invalid-condition check",
+			"item": [
+				{
+					"name": "User1 create booking (2 nights)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+									"const json = pm.response.json();",
+									"pm.test(\"Booking belongs to user1\", () => pm.expect(json.data.user).to.eql(pm.environment.get(\"user1Id\")));",
+									"pm.test(\"Status is upcoming\", () => pm.expect(json.data.status).to.eql(\"upcoming\"));",
+									"pm.environment.set(\"user1BookingId\", json.data._id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/campgrounds/{{campgroundId}}/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"{{campgroundId}}",
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"checkInDate\": \"{{futureDate}}\",\n  \"nights\": 2\n}"
+						}
+					}
+				},
+				{
+					"name": "User2 create booking (1 night)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+									"pm.environment.set(\"user2BookingId\", pm.response.json().data._id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/campgrounds/{{campgroundId}}/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"{{campgroundId}}",
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user2Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"checkInDate\": \"{{futureDate}}\",\n  \"nights\": 1\n}"
+						}
+					}
+				},
+				{
+					"name": "Create booking for 4 nights -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/campgrounds/{{campgroundId}}/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"{{campgroundId}}",
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"checkInDate\": \"{{futureDate}}\",\n  \"nights\": 4\n}"
+						}
+					}
+				},
+				{
+					"name": "Create booking for 0 nights -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/campgrounds/{{campgroundId}}/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"{{campgroundId}}",
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"checkInDate\": \"{{futureDate}}\",\n  \"nights\": 0\n}"
+						}
+					}
+				},
+				{
+					"name": "Create booking in the past -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/campgrounds/{{campgroundId}}/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"{{campgroundId}}",
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"checkInDate\": \"{{pastDate}}\",\n  \"nights\": 1\n}"
+						}
+					}
+				},
+				{
+					"name": "Create booking with invalid date -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/campgrounds/{{campgroundId}}/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"{{campgroundId}}",
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"checkInDate\": \"not-a-date\",\n  \"nights\": 1\n}"
+						}
+					}
+				},
+				{
+					"name": "Create booking for unknown campground -> 404",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/campgrounds/000000000000000000000000/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"000000000000000000000000",
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"checkInDate\": \"{{futureDate}}\",\n  \"nights\": 1\n}"
+						}
+					}
+				},
+				{
+					"name": "Create booking without token -> 401",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer",
+								"description": "No token. Overrides the cookie Postman saved at login."
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/campgrounds/{{campgroundId}}/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"{{campgroundId}}",
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"checkInDate\": \"{{futureDate}}\",\n  \"nights\": 1\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "05 View own bookings",
+			"item": [
+				{
+					"name": "User1 get bookings (only own)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"const json = pm.response.json();",
+									"const me = pm.environment.get(\"user1Id\");",
+									"pm.test(\"Only user1's bookings\", () => json.data.forEach(b => pm.expect(b.user).to.eql(me)));",
+									"pm.test(\"Campground is populated\", () => json.data.forEach(b => pm.expect(b.campground).to.have.property(\"name\")));",
+									"const done = json.data.find(b => b.status === \"completed\");",
+									"pm.test(\"Seeded completed booking is present\", () => pm.expect(done, \"run node seeder -i first\").to.exist);",
+									"if (done) pm.environment.set(\"user1CompletedBookingId\", done._id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "User1 get own booking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user1BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user1BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "User1 get user2's booking -> 403",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user2BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user2BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "06 Edit own booking",
+			"item": [
+				{
+					"name": "User1 update own booking (3 nights)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Nights updated\", () => pm.expect(pm.response.json().data.nights).to.eql(3));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user1BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user1BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nights\": 3\n}"
+						}
+					}
+				},
+				{
+					"name": "User1 update own booking to 4 nights -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user1BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user1BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nights\": 4\n}"
+						}
+					}
+				},
+				{
+					"name": "User1 update own booking to a past date -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user1BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user1BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"checkInDate\": \"{{pastDate}}\"\n}"
+						}
+					}
+				},
+				{
+					"name": "User1 change own booking status -> 403",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user1BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user1BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"completed\"\n}"
+						}
+					}
+				},
+				{
+					"name": "User1 update user2's booking -> 403",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user2BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user2BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nights\": 2\n}"
+						}
+					}
+				},
+				{
+					"name": "User1 change dates of a completed booking -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user1CompletedBookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user1CompletedBookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"checkInDate\": \"{{futureDate}}\",\n  \"nights\": 1\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "07 Delete own booking",
+			"item": [
+				{
+					"name": "User1 delete user2's booking -> 403",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user2BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user2BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "User1 delete own booking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user1BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user1BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get the deleted booking -> 404",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user1BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user1BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "08 Log out",
+			"item": [
+				{
+					"name": "User1 log out (revokes the token, clears the cookie)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/auth/logout",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get me with the logged-out token -> 401",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/auth/me",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user1Token}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "09 Log in as admin",
+			"item": [
+				{
+					"name": "Login admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"const json = pm.response.json();",
+									"pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+									"pm.environment.set(\"adminToken\", json.token);",
+									"pm.environment.set(\"TOKEN\", json.token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/auth/login",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"123456\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Get me (admin role)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Role is admin\", () => pm.expect(pm.response.json().data.role).to.eql(\"admin\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/auth/me",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "10 Admin views any booking",
+			"item": [
+				{
+					"name": "Admin get all bookings",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"const owners = new Set(pm.response.json().data.map(b => b.user));",
+									"pm.test(\"Sees bookings from more than one user\", () => pm.expect(owners.size).to.be.above(1));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Admin get bookings for one campground",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"const id = pm.environment.get(\"campgroundId\");",
+									"pm.test(\"All bookings are for this campground\", () => pm.response.json().data.forEach(b => pm.expect(b.campground._id).to.eql(id)));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/campgrounds/{{campgroundId}}/bookings",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"campgrounds",
+								"{{campgroundId}}",
+								"bookings"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Admin get user2's booking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user2BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user2BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "11 Admin edits any booking",
+			"item": [
+				{
+					"name": "Admin update user2's booking (2 nights)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Nights updated\", () => pm.expect(pm.response.json().data.nights).to.eql(2));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user2BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user2BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nights\": 2\n}"
+						}
+					}
+				},
+				{
+					"name": "Admin cancel user2's booking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Status is cancelled\", () => pm.expect(pm.response.json().data.status).to.eql(\"cancelled\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user2BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user2BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"cancelled\"\n}"
+						}
+					}
+				},
+				{
+					"name": "User2 change dates of the cancelled booking -> 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user2BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user2BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user2Token}}",
+									"type": "string"
+								}
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nights\": 1\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "12 Admin deletes any booking",
+			"item": [
+				{
+					"name": "Admin delete user2's booking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user2BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user2BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get the deleted booking -> 404",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}/bookings/{{user2BookingId}}",
+							"host": [
+								"{{URL}}"
+							],
+							"path": [
+								"bookings",
+								"{{user2BookingId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{TOKEN}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Dates used by booking requests (YYYY-MM-DD)",
+					"const fmt = d => d.toISOString().slice(0, 10);",
+					"const DAY = 24 * 60 * 60 * 1000;",
+					"pm.environment.set(\"futureDate\", fmt(new Date(Date.now() + 30 * DAY)));",
+					"pm.environment.set(\"pastDate\", fmt(new Date(Date.now() - 2 * DAY)));"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test(\"Response time is under 3 seconds\", () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+					"pm.test(\"Response has a success flag\", () => pm.expect(pm.response.json()).to.have.property(\"success\"));"
+				]
+			}
+		}
+	]
+}

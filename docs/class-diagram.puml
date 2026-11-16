@@ -1,0 +1,118 @@
+@startuml class-diagram
+title Campground Booking - Class Diagram (UML Profile for REST)
+
+skinparam classAttributeIconSize 0
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam class {
+  BackgroundColor #F5FAF2
+  BorderColor #4F7A3A
+  ArrowColor #4F7A3A
+}
+hide circle
+hide empty members
+
+package "Campground Booking" {
+
+  class "<<Application>>\nCampgroundBookingService" as App
+
+  ' ---------- Auth ----------
+  class "<<Resource>>\nRegister" as ResRegister {
+    <<POST>> +register(): Token
+  }
+  class "<<Resource>>\nLogin" as ResLogin {
+    <<POST>> +login(): Token
+  }
+  class "<<Resource>>\nLogout" as ResLogout {
+    <<GET>> +logout(): void
+  }
+  class "<<Resource>>\nMe" as ResMe {
+    <<GET>> +getMe(): User
+  }
+  class "<<Representation>>\nUser" as RepUser {
+    -name: String
+    -tel: String
+    -email: String {unique}
+    -password: String {hashed}
+    -role: String {user | admin}
+    -createdAt: Date
+  }
+  class "<<Representation>>\nToken" as RepToken {
+    -success: Boolean
+    -token: String {JWT with unique jti}
+  }
+
+  ' ---------- Campgrounds ----------
+  class "<<Resource>>\nCampgrounds" as ResCampgrounds {
+    <<GET>> +getCampgrounds(): Campground
+    <<POST>> +createCampground(): Campground
+  }
+  class "<<Resource>>\nCampground" as ResCampground {
+    <<GET>> +getCampground(): Campground
+    <<PUT>> +updateCampground(): Campground
+    <<DELETE>> +deleteCampground(): void
+  }
+  class "<<Representation>>\nCampground" as RepCampground {
+    -name: String {unique}
+    -address: String
+    -tel: String
+    -createdAt: Date
+  }
+
+  ' ---------- Bookings ----------
+  class "<<Resource>>\nBookings" as ResBookings {
+    <<GET>> +getBookings(): Booking
+    <<POST>> +addBooking(): Booking
+  }
+  class "<<Resource>>\nBooking" as ResBooking {
+    <<GET>> +getBooking(): Booking
+    <<PUT>> +updateBooking(): Booking
+    <<DELETE>> +deleteBooking(): void
+  }
+  class "<<Representation>>\nBooking" as RepBooking {
+    -user: ObjectId {ref User}
+    -campground: ObjectId {ref Campground}
+    -checkInDate: Date
+    -nights: Number {1..3}
+    -checkOutDate: Date {= checkInDate + nights}
+    -status: String {upcoming | completed | cancelled}
+    -createdAt: Date
+  }
+}
+
+' ---------- Paths ----------
+App ..> ResRegister : "/auth/register\n<<Path>>"
+App ..> ResLogin : "/auth/login\n<<Path>>"
+App ..> ResLogout : "/auth/logout\n<<Path>>"
+App ..> ResMe : "/auth/me\n<<Path>>"
+
+App ..> ResCampgrounds : "/campgrounds\n<<Path>>"
+ResCampgrounds ..> ResCampground : "/{campgroundId}\n<<Path>>"
+ResCampground ..> ResBookings : "/bookings\n<<Path>>"
+
+App ..> ResBookings : "/bookings\n<<Path>>"
+ResBookings ..> ResBooking : "/{bookingId}\n<<Path>>"
+
+' ---------- Representations ----------
+ResRegister ..> RepToken : "<<use>>"
+ResLogin ..> RepToken : "<<use>>"
+ResMe ..> RepUser : "<<use>>"
+ResCampgrounds ..> RepCampground : "<<use>>"
+ResCampground ..> RepCampground : "<<use>>"
+ResBookings ..> RepBooking : "<<use>>"
+ResBooking ..> RepBooking : "<<use>>"
+
+note bottom of RepBooking
+  Regular users: only their own bookings (403 otherwise).
+  Admins: any booking; only admins may change status.
+  POST /campgrounds/{campgroundId}/bookings creates a booking.
+end note
+
+note as N1
+  Base requirements 1-9 only.
+  Additional-requirement resources and fields
+  (filters, availability, profile update, details,
+  reviews) are omitted, as allowed by the brief.
+end note
+
+@enduml

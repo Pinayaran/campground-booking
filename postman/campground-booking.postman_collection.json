@@ -6125,6 +6125,658 @@
           }
         }
       ]
+    },
+    {
+      "name": "Quick Demo (Requirements 1-6)",
+      "description": "Run this folder by itself, from 00 through 14, with the Campground Booking environment selected and freshly seeded local data (node seeder -i from backend). Do not run the other folders first.\n\n00 logs in as user1@gmail.com / 123456. 01-02 demonstrate location filtering and date availability. 03-06 demonstrate profile and password changes. 07 shows campground details. 08 finds the seeded completed, unreviewed Erawan stay. 09 saves a rating; 10 adds the written review to that same rating. 11 shows the result. 12-14 remove the demo review and restore the original seeded profile and password so the demo can be repeated.\n\nVariables and tokens are captured automatically with demo-prefixed names. Set demoDate in the environment to choose a date (YYYY-MM-DD); if absent, it defaults to 30 days from today.\n\nDuring the demo, the account becomes user1.demo@example.com / DemoPass123. If interrupted after changing the profile or password, continue with the remaining requests, including cleanup, or reseed your disposable local database. Seeding clears existing data.",
+      "item": [
+        {
+          "name": "00 Setup - Login user1",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['demoToken', 'demoCampgroundId', 'demoBookingId', 'demoReviewId'].forEach(key => pm.environment.unset(key));",
+                  "if (!pm.environment.get('demoDate')) {",
+                  "  pm.environment.set('demoDate', new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const token = pm.response.json().token;",
+                  "pm.test('Returns a login token', () => pm.expect(token).to.be.a('string').and.not.empty);",
+                  "if (token) pm.environment.set('demoToken', token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{URL}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Start here after seeding. Saves demoToken and initializes the selected demoDate. All later requests use the demo token automatically.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user1@gmail.com\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "01 R1 - Filter campgrounds by location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const demoData = pm.response.json().data;",
+                  "pm.test('Only campgrounds in Kanchanaburi, West are returned', () => {",
+                  "  pm.expect(demoData).to.be.an('array').and.not.empty;",
+                  "  demoData.forEach(c => { pm.expect(c.province).to.eql('Kanchanaburi'); pm.expect(c.region).to.eql('West'); });",
+                  "});",
+                  "const campground = demoData.find(c => c.name === 'Erawan Riverside Camp');",
+                  "pm.test('Seeded Erawan campground is present', () => pm.expect(campground, 'Seed local demoData before this demo').to.be.an('object'));",
+                  "if (campground) pm.environment.set('demoCampgroundId', campground._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{URL}}/campgrounds?province=Kanchanaburi&region=West",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Requirement 1: filter by province and region. Change the query parameters in Params to explore other locations; keep these defaults for the complete demo. Captures the Erawan campground ID."
+          }
+        },
+        {
+          "name": "02 R2 - Check availability for selected date",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const demoData = pm.response.json().data;",
+                  "pm.test('Shows availability for the selected date', () => {",
+                  "  pm.expect(demoData.date).to.eql(pm.environment.get('demoDate'));",
+                  "  pm.expect(demoData.available).to.be.a('boolean');",
+                  "  pm.expect(demoData.booked).to.be.a('number');",
+                  "  pm.expect(demoData.remaining).to.be.at.least(0);",
+                  "  pm.expect(demoData.booked + demoData.remaining).to.eql(demoData.capacity);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{URL}}/campgrounds/{{demoCampgroundId}}/availability?date={{demoDate}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Requirement 2: inspect capacity, booked, remaining and available before making a booking. Set demoDate in the selected environment to choose a date (YYYY-MM-DD)."
+          }
+        },
+        {
+          "name": "03 R3 - Update name telephone and email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const demoData = pm.response.json().data;",
+                  "pm.test('All three personal details are saved', () => {",
+                  "  pm.expect(demoData.name).to.eql('Teletubbies Demo User');",
+                  "  pm.expect(demoData.tel).to.eql('0899999999');",
+                  "  pm.expect(demoData.email).to.eql('user1.demo@example.com');",
+                  "  pm.expect(demoData).not.to.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{URL}}/auth/updatedetails",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Requirement 3: update the logged-in user. Until cleanup, use user1.demo@example.com as the login email.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Teletubbies Demo User\",\n  \"tel\": \"0899999999\",\n  \"email\": \"user1.demo@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "04 R3 - Change password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const token = pm.response.json().token;",
+                  "pm.test('Returns a login token', () => pm.expect(token).to.be.a('string').and.not.empty);",
+                  "if (token) pm.environment.set('demoToken', token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{URL}}/auth/updatepassword",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Requirement 3: change password to DemoPass123. Automatically saves the replacement token because changing a password revokes the old token.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"123456\",\n  \"newPassword\": \"DemoPass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "05 R3 - Login with updated credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const token = pm.response.json().token;",
+                  "pm.test('Returns a login token', () => pm.expect(token).to.be.a('string').and.not.empty);",
+                  "if (token) pm.environment.set('demoToken', token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{URL}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Proves that the new email and password can be used to log in.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user1.demo@example.com\",\n  \"password\": \"DemoPass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "06 R3 - View updated personal information",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const demoData = pm.response.json().data;",
+                  "pm.test('Profile contains the new name telephone and email', () => {",
+                  "  pm.expect(demoData.name).to.eql('Teletubbies Demo User');",
+                  "  pm.expect(demoData.tel).to.eql('0899999999');",
+                  "  pm.expect(demoData.email).to.eql('user1.demo@example.com');",
+                  "  pm.expect(demoData.role).to.eql('user');",
+                  "  pm.expect(demoData).not.to.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{URL}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Shows the persisted updated profile. Passwords are intentionally never returned by the API."
+          }
+        },
+        {
+          "name": "07 R4 - View campground description facilities and rules",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const demoData = pm.response.json().data;",
+                  "pm.test('Campground has a description facilities and rules', () => {",
+                  "  pm.expect(demoData.name).to.eql('Erawan Riverside Camp');",
+                  "  pm.expect(demoData.description).to.be.a('string').and.not.empty;",
+                  "  pm.expect(demoData.facilities).to.be.an('array').and.not.empty;",
+                  "  pm.expect(demoData.rules).to.be.an('array').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{URL}}/campgrounds/{{demoCampgroundId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Requirement 4: inspect the description, facilities and rules fields in the response."
+          }
+        },
+        {
+          "name": "08 Setup - Find completed Erawan stay",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const stay = pm.response.json().data.find(b => b.status === 'completed' && b.campground && b.campground._id === pm.environment.get('demoCampgroundId'));",
+                  "pm.test('User owns a completed Erawan stay', () => pm.expect(stay, 'Run node seeder -i on the local database first').to.be.an('object'));",
+                  "if (stay) pm.environment.set('demoBookingId', stay._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{URL}}/bookings",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Finds the completed, unreviewed Erawan booking created by the seeder. A future booking cannot be rated or reviewed."
+          }
+        },
+        {
+          "name": "09 R5 - Rate the completed stay",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', () => pm.response.to.have.status(201));",
+                  "const demoData = pm.response.json().data;",
+                  "pm.test('Five-star rating is saved for the completed booking', () => {",
+                  "  pm.expect(demoData.rating).to.eql(5);",
+                  "  pm.expect(demoData.booking).to.eql(pm.environment.get('demoBookingId'));",
+                  "  pm.expect(demoData.campground).to.eql(pm.environment.get('demoCampgroundId'));",
+                  "});",
+                  "if (demoData && demoData._id) pm.environment.set('demoReviewId', demoData._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{URL}}/campgrounds/{{demoCampgroundId}}/reviews",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Requirement 5: submit a rating from 1 to 5 for the completed stay. No written comment is sent yet. Captures the review ID for the next step.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{demoBookingId}}\",\n  \"rating\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "10 R6 - Write a review for the completed stay",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const demoData = pm.response.json().data;",
+                  "pm.test('Written review is saved alongside the rating', () => {",
+                  "  pm.expect(demoData._id).to.eql(pm.environment.get('demoReviewId'));",
+                  "  pm.expect(demoData.rating).to.eql(5);",
+                  "  pm.expect(demoData.comment).to.eql('Peaceful riverside campsite, clean facilities and clear rules. Would visit again!');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{URL}}/reviews/{{demoReviewId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Requirement 6: add the written review to the rating from step 09. The API allows only one review per booking, so use PUT to add text to the existing rating.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Peaceful riverside campsite, clean facilities and clear rules. Would visit again!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "11 R5-R6 - View campground rating and written review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const demoData = pm.response.json().data;",
+                  "const review = demoData.reviews.find(r => r._id === pm.environment.get('demoReviewId'));",
+                  "pm.test('Campground displays the saved rating and review', () => {",
+                  "  pm.expect(demoData.averageRating).to.eql(5);",
+                  "  pm.expect(demoData.ratingCount).to.eql(1);",
+                  "  pm.expect(review).to.be.an('object');",
+                  "  pm.expect(review.rating).to.eql(5);",
+                  "  pm.expect(review.comment).to.eql('Peaceful riverside campsite, clean facilities and clear rules. Would visit again!');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{URL}}/campgrounds/{{demoCampgroundId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Shows the final demo result: averageRating, ratingCount and the written review in the campground details. Expected counts assume fresh seeded data."
+          }
+        },
+        {
+          "name": "12 Cleanup - Delete demo rating and review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Demo review is deleted', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{URL}}/reviews/{{demoReviewId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Cleanup: removes only the review created in step 09 so the completed booking can be reviewed on the next demo run."
+          }
+        },
+        {
+          "name": "13 Cleanup - Restore original personal information",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const demoData = pm.response.json().data;",
+                  "pm.test('Seeded profile is restored', () => {",
+                  "  pm.expect(demoData.name).to.eql('User One');",
+                  "  pm.expect(demoData.tel).to.eql('0811111111');",
+                  "  pm.expect(demoData.email).to.eql('user1@gmail.com');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{URL}}/auth/updatedetails",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Cleanup: restores the seeded name, telephone number and email.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"User One\",\n  \"tel\": \"0811111111\",\n  \"email\": \"user1@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "14 Cleanup - Restore original password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "const token = pm.response.json().token;",
+                  "pm.test('Returns a login token', () => pm.expect(token).to.be.a('string').and.not.empty);",
+                  "if (token) pm.environment.set('demoToken', token);",
+                  "if (token) {",
+                  "  pm.environment.set('TOKEN', token);",
+                  "  pm.environment.set('user1Token', token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{URL}}/auth/updatepassword",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demoToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Cleanup: restores password 123456 and refreshes the normal collection tokens. After completing all steps, the demo can be run again without reseeding.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"DemoPass123\",\n  \"newPassword\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   ]
 }
