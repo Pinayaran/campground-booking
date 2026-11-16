@@ -22,6 +22,8 @@ Seeded accounts (password `123456` for all): `admin@gmail.com` (admin), `user1@g
 
 Import both files in [postman/](./postman/), select the **Campground Booking** environment, run `node seeder -i` (add `--force` for the shared Atlas cluster), and then run the collection in order. The login requests save `{{TOKEN}}` automatically.
 
+For the base requirements, run **Presentation Demo (Base Requirements 1-12)** on its own right after seeding. Its subfolders `01`–`12` follow the presentation steps (register, log in, view campgrounds, create/view/edit/delete own booking, log out, then admin log in and view/edit/delete any booking). Run it before the Quick Demo below.
+
 For a short presentation, run only **Quick Demo (Requirements 1-6)**, in numbered order from **00** to **14**, after seeding a disposable local database. The folder is available in the local Postman collection and in the importable JSON collection. It captures its own `demoToken`, campground, completed booking and review IDs automatically. Set `demoDate` in the selected environment to choose an availability date (`YYYY-MM-DD`); otherwise it defaults to 30 days from today.
 
 | Demo steps | Requirement demonstrated |
