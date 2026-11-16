@@ -22,6 +22,21 @@ Seeded accounts (password `123456` for all): `admin@gmail.com` (admin), `user1@g
 
 Import both files in [postman/](./postman/), select the **Campground Booking** environment, run `node seeder -i` (add `--force` for the shared Atlas cluster), and then run the collection in order. The login requests save `{{TOKEN}}` automatically.
 
+For a short presentation, run only **Quick Demo (Requirements 1-6)**, in numbered order from **00** to **14**, after seeding a disposable local database. The folder is available in the local Postman collection and in the importable JSON collection. It captures its own `demoToken`, campground, completed booking and review IDs automatically. Set `demoDate` in the selected environment to choose an availability date (`YYYY-MM-DD`); otherwise it defaults to 30 days from today.
+
+| Demo steps | Requirement demonstrated |
+|---|---|
+| 00 | Log in as seeded user1 |
+| 01 | 1: Filter by province and region |
+| 02 | 2: Check availability for the selected date |
+| 03–06 | 3: Update name, telephone, email and password, then log in and view the updated profile |
+| 07 | 4: View description, facilities and rules |
+| 08–09 | 5: Find a completed stay and submit a rating |
+| 10–11 | 6: Add a written review to the rating and view both on the campground |
+| 12–14 | Delete the demo review and restore user1's original profile and password |
+
+During steps 03–14, user1's credentials become `user1.demo@example.com` / `DemoPass123`. Complete the cleanup steps to restore `user1@gmail.com` / `123456` and make the demo repeatable. If interrupted, continue where you stopped or reseed the disposable local database; **seeding clears its existing data**. Run this demo independently of the other folders so their changes do not affect its seed assumptions.
+
 ## Frontend Setup
 
 The frontend is a Next.js (App Router, JavaScript, Tailwind CSS) app for the main campground page. Start the backend first.
