@@ -1,0 +1,98 @@
+# Use Case Diagram
+
+Mermaid has no native use case diagram type, so this uses a flowchart: actors are on the left, and use cases are the rounded shapes inside the system boundary. Hollow-arrow lines between actors mean "inherits" (a User can do everything a Guest can; an Admin can do everything a User can).
+
+```mermaid
+flowchart LR
+    %% ===== Actors =====
+    Guest["👤 Guest"]
+    User["👤 User<br/>(Registered Member)"]
+    Admin["👤 Admin"]
+
+    User -. inherits .-> Guest
+    Admin -. inherits .-> User
+
+    subgraph SYS["Campground Booking System"]
+        direction TB
+
+        subgraph ACC["Account"]
+            UC_Register(["Register"])
+            UC_Login(["Log in"])
+            UC_Logout(["Log out"])
+            UC_Profile(["View Profile"])
+            UC_UpdateDetails(["Update Details<br/>(name, tel, email)"])
+            UC_ChangePwd(["Change Password"])
+        end
+
+        subgraph BRW["Browsing"]
+            UC_Browse(["Browse Campgrounds"])
+            UC_Search(["Search by Name"])
+            UC_Filter(["Filter by Province / Region"])
+            UC_FilterDate(["Filter by Available Date"])
+            UC_Details(["View Campground Details<br/>(facilities, rules, rating)"])
+            UC_Availability(["Check Availability on a Date"])
+            UC_ViewReviews(["View Reviews"])
+        end
+
+        subgraph BKG["Bookings"]
+            UC_Book(["Book Campground<br/>(max 3 nights)"])
+            UC_MyBookings(["View My Bookings"])
+            UC_EditBooking(["Edit Booking"])
+            UC_DeleteBooking(["Cancel / Delete Booking"])
+        end
+
+        subgraph REV["Reviews"]
+            UC_Review(["Rate & Review Completed Stay"])
+            UC_EditReview(["Edit Own Review"])
+            UC_DeleteReview(["Delete Own Review"])
+        end
+
+        subgraph ADM["Administration"]
+            UC_ManageCamp(["Manage Campgrounds<br/>(create / update / delete)"])
+            UC_AllBookings(["View All Bookings"])
+            UC_ManageBookings(["Edit / Delete Any Booking"])
+            UC_ModerateReviews(["Delete Any Review"])
+        end
+    end
+
+    %% ===== Guest =====
+    Guest --- UC_Register
+    Guest --- UC_Login
+    Guest --- UC_Browse
+    Guest --- UC_Details
+    Guest --- UC_Availability
+    Guest --- UC_ViewReviews
+
+    %% ===== User =====
+    User --- UC_Logout
+    User --- UC_Profile
+    User --- UC_UpdateDetails
+    User --- UC_ChangePwd
+    User --- UC_Book
+    User --- UC_MyBookings
+    User --- UC_EditBooking
+    User --- UC_DeleteBooking
+    User --- UC_Review
+    User --- UC_EditReview
+    User --- UC_DeleteReview
+
+    %% ===== Admin =====
+    Admin --- UC_ManageCamp
+    Admin --- UC_AllBookings
+    Admin --- UC_ManageBookings
+    Admin --- UC_ModerateReviews
+
+    %% ===== Include / Extend =====
+    UC_Search -. "«extend»" .-> UC_Browse
+    UC_Filter -. "«extend»" .-> UC_Browse
+    UC_FilterDate -. "«extend»" .-> UC_Browse
+    UC_Details -. "«include»" .-> UC_ViewReviews
+    UC_Book -. "«include»" .-> UC_Availability
+    UC_EditBooking -. "«include»" .-> UC_Availability
+
+    %% ===== Styling =====
+    classDef actor fill:#FFF7E0,stroke:#B8860B,stroke-width:2px,color:#000
+    classDef uc fill:#F5FAF2,stroke:#4F7A3A,color:#000
+    class Guest,User,Admin actor
+    class UC_Register,UC_Login,UC_Logout,UC_Profile,UC_UpdateDetails,UC_ChangePwd,UC_Browse,UC_Search,UC_Filter,UC_FilterDate,UC_Details,UC_Availability,UC_ViewReviews,UC_Book,UC_MyBookings,UC_EditBooking,UC_DeleteBooking,UC_Review,UC_EditReview,UC_DeleteReview,UC_ManageCamp,UC_AllBookings,UC_ManageBookings,UC_ModerateReviews uc
+```

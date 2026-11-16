@@ -1,0 +1,91 @@
+@startuml usecase-diagram
+title Campground Booking System - Use Case Diagram
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F5FAF2
+  BorderColor #4F7A3A
+}
+
+actor "Guest" as Guest
+actor "User\n(Registered Member)" as User
+actor "Admin" as Admin
+
+User --|> Guest
+Admin --|> User
+
+rectangle "Campground Booking System" {
+
+  ' --- Account ---
+  usecase "Register" as UC_Register
+  usecase "Log in" as UC_Login
+  usecase "Log out" as UC_Logout
+  usecase "View Profile" as UC_Profile
+  usecase "Update Details\n(name, tel, email)" as UC_UpdateDetails
+  usecase "Change Password" as UC_ChangePwd
+
+  ' --- Browsing ---
+  usecase "Browse Campgrounds" as UC_Browse
+  usecase "Search by Name" as UC_Search
+  usecase "Filter by Province / Region" as UC_Filter
+  usecase "Filter by Available Date" as UC_FilterDate
+  usecase "View Campground Details\n(facilities, rules, rating)" as UC_Details
+  usecase "Check Availability\non a Date" as UC_Availability
+  usecase "View Reviews" as UC_ViewReviews
+
+  ' --- Bookings ---
+  usecase "Book Campground\n(max 3 nights)" as UC_Book
+  usecase "View My Bookings" as UC_MyBookings
+  usecase "Edit Booking" as UC_EditBooking
+  usecase "Cancel / Delete Booking" as UC_DeleteBooking
+
+  ' --- Reviews ---
+  usecase "Rate & Review\nCompleted Stay" as UC_Review
+  usecase "Edit Own Review" as UC_EditReview
+  usecase "Delete Own Review" as UC_DeleteReview
+
+  ' --- Admin ---
+  usecase "Manage Campgrounds\n(create / update / delete)" as UC_ManageCamp
+  usecase "View All Bookings" as UC_AllBookings
+  usecase "Edit / Delete Any Booking" as UC_ManageBookings
+  usecase "Delete Any Review" as UC_ModerateReviews
+}
+
+' Guest (not logged in)
+Guest --> UC_Register
+Guest --> UC_Login
+Guest --> UC_Browse
+Guest --> UC_Details
+Guest --> UC_Availability
+Guest --> UC_ViewReviews
+
+' Registered user
+User --> UC_Logout
+User --> UC_Profile
+User --> UC_UpdateDetails
+User --> UC_ChangePwd
+User --> UC_Book
+User --> UC_MyBookings
+User --> UC_EditBooking
+User --> UC_DeleteBooking
+User --> UC_Review
+User --> UC_EditReview
+User --> UC_DeleteReview
+
+' Admin
+Admin --> UC_ManageCamp
+Admin --> UC_AllBookings
+Admin --> UC_ManageBookings
+Admin --> UC_ModerateReviews
+
+' Relationships between use cases
+UC_Search .> UC_Browse : <<extend>>
+UC_Filter .> UC_Browse : <<extend>>
+UC_FilterDate .> UC_Browse : <<extend>>
+UC_Details ..> UC_ViewReviews : <<include>>
+UC_Book ..> UC_Availability : <<include>>
+UC_EditBooking ..> UC_Availability : <<include>>
+
+@enduml
