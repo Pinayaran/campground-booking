@@ -63,19 +63,14 @@ exports.login = async (req, res, next) => {
 // @access  Private
 exports.logout = async (req, res, next) => {
     try {
-        const { jti, exp } = req.tokenPayload;
-
         //Stored until the token's own expiry; the TTL index removes it after that.
-        //upsert so logging out twice with the same token is harmless.
-        await RevokedToken.updateOne(
-            { jti },
-            { jti, expiresAt: new Date(exp * 1000) },
-            { upsert: true }
-        );
+        //Revoking is an upsert, so logging out twice with the same token is harmless.
+        await RevokedToken.revoke(req.tokenPayload);
 
         res.cookie('token', 'none', {
             expires: new Date(Date.now() + 10 * 1000),
-            httpOnly: true
+            httpOnly: true,
+            sameSite: 'lax'
         });
 
         res.status(200).json({
@@ -105,6 +100,76 @@ exports.getMe = async (req, res, next) => {
     }
 };
 
+// @desc    Update name, tel or email of the current user
+// @route   PUT /api/v1/auth/updatedetails
+// @access  Private
+exports.updateDetails = async (req, res, next) => {
+    try {
+        //Only these keys are copied: role and password can never be changed here
+        const fields = {};
+        for (const key of ['name', 'tel', 'email']) {
+            if (req.body[key] !== undefined) fields[key] = req.body[key];
+        }
+
+        if (Object.keys(fields).length === 0) {
+            return res.status(400).json({ success: false, message: 'Please provide name, tel or email to update' });
+        }
+
+        const user = await User.findByIdAndUpdate(req.user.id, fields, {
+            runValidators: true,
+            returnDocument: 'after'
+        });
+
+        res.status(200).json({
+            success: true,
+            data: user
+        });
+    } catch (err) {
+        console.log(err.stack);
+
+        if (err.code === 11000) {
+            return res.status(400).json({ success: false, message: 'Email is already registered' });
+        }
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({ success: false, message: err.message });
+        }
+        res.status(500).json({ success: false, message: 'Cannot update details' });
+    }
+};
+
+// @desc    Change password; the token used for the request is revoked and a new one is returned
+// @route   PUT /api/v1/auth/updatepassword
+// @access  Private
+exports.updatePassword = async (req, res, next) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Please provide currentPassword and newPassword' });
+        }
+
+        const user = await User.findById(req.user.id).select('+password');
+        if (!(await user.matchPassword(currentPassword))) {
+            return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+        }
+
+        //save() runs the hash hook and validates the length
+        user.password = newPassword;
+        await user.save();
+
+        await RevokedToken.revoke(req.tokenPayload);
+
+        sendTokenResponse(user, 200, res);
+    } catch (err) {
+        console.log(err.stack);
+
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({ success: false, message: err.message });
+        }
+        res.status(500).json({ success: false, message: 'Cannot update password' });
+    }
+};
+
 const sendTokenResponse = (user, statusCode, res) => {
 
     // Create token
@@ -115,7 +180,8 @@ const sendTokenResponse = (user, statusCode, res) => {
             Date.now() +
             process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
         ),
-        httpOnly: true
+        httpOnly: true,
+        sameSite: 'lax'
     };
 
     if (process.env.NODE_ENV === 'production') {

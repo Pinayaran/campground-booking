@@ -805,7 +805,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Camp {{$timestamp}}\",\n  \"address\": \"1 Test Road, Bangkok 10330\",\n  \"tel\": \"0200000000\"\n}",
+              "raw": "{\n  \"name\": \"Postman Camp {{$timestamp}}\",\n  \"address\": \"1 Test Road, Bangkok 10330\",\n  \"tel\": \"0200000000\",\n  \"province\": \"Bangkok\",\n  \"region\": \"Central\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -856,7 +856,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{campgroundName}}\",\n  \"address\": \"Somewhere\",\n  \"tel\": \"0200000000\"\n}",
+              "raw": "{\n  \"name\": \"{{campgroundName}}\",\n  \"address\": \"Somewhere\",\n  \"tel\": \"0200000000\",\n  \"province\": \"Bangkok\",\n  \"region\": \"Central\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2734,6 +2734,3389 @@
               "path": [
                 "campgrounds",
                 "{{campgroundId}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Campground Search",
+      "item": [
+        {
+          "name": "Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+                  "pm.environment.set(\"TOKEN\", json.token);",
+                  "pm.environment.set(\"adminToken\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/login",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Find the full campground (Mae Sa Hideaway, capacity 1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const full = json.data.find(c => c.name === \"Mae Sa Hideaway\");",
+                  "pm.test(\"Full campground exists with capacity 1\", () => { pm.expect(full).to.be.an(\"object\"); pm.expect(full.capacity).to.eql(1); });",
+                  "if (full) pm.environment.set(\"fullCampgroundId\", full._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?search=Mae%20Sa&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Mae%20Sa"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get the full campground's upcoming booking to find the full date",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const booked = json.data.find(b => b.status !== \"cancelled\");",
+                  "pm.test(\"Full campground has a booking\", () => pm.expect(booked).to.be.an(\"object\"));",
+                  "if (booked) pm.environment.set(\"fullDate\", booked.checkInDate.slice(0, 10));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{fullCampgroundId}}/bookings",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{fullCampgroundId}}",
+                "bookings"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by province (Chiang Mai)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "pm.test(\"Every result is in Chiang Mai\", () => json.data.forEach(c => pm.expect(c.province).to.eql(\"Chiang Mai\")));",
+                  "const names = json.data.map(c => c.name);",
+                  "pm.test(\"Includes Doi Inthanon Camp and Mae Sa Hideaway\", () => { pm.expect(names).to.include(\"Doi Inthanon Camp\"); pm.expect(names).to.include(\"Mae Sa Hideaway\"); });",
+                  "pm.test(\"Does not include other provinces\", () => pm.expect(names).to.not.include(\"Railay Beach Camp\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?province=Chiang%20Mai&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "province",
+                  "value": "Chiang%20Mai"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Filter by region (West)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "pm.test(\"Every result is in the West\", () => json.data.forEach(c => pm.expect(c.region).to.eql(\"West\")));",
+                  "const names = json.data.map(c => c.name);",
+                  "pm.test(\"Includes Erawan and Sai Yok\", () => { pm.expect(names).to.include(\"Erawan Riverside Camp\"); pm.expect(names).to.include(\"Sai Yok Bamboo Camp\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?region=West&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "region",
+                  "value": "West"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Filter by province and region together",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "pm.test(\"Only Kanchanaburi / West\", () => json.data.forEach(c => { pm.expect(c.province).to.eql(\"Kanchanaburi\"); pm.expect(c.region).to.eql(\"West\"); }));",
+                  "pm.test(\"Two campgrounds\", () => pm.expect(json.data.length).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?province=Kanchanaburi&region=West&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "province",
+                  "value": "Kanchanaburi"
+                },
+                {
+                  "key": "region",
+                  "value": "West"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Filter by a province with no campgrounds -> empty list",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "pm.test(\"No results\", () => pm.expect(json.data.length).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?province=Atlantis",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "province",
+                  "value": "Atlantis"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Search by name (case-insensitive)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "pm.test(\"Finds Erawan Riverside Camp\", () => pm.expect(json.data.map(c => c.name)).to.include(\"Erawan Riverside Camp\"));",
+                  "pm.test(\"Every result matches the search text\", () => json.data.forEach(c => pm.expect(JSON.stringify(c).toLowerCase()).to.include(\"erawan\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?search=erawan",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "erawan"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Pagination: page 2 with limit 3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "pm.test(\"3 campgrounds on the page\", () => pm.expect(json.data.length).to.eql(3));",
+                  "pm.test(\"Has prev and next links\", () => { pm.expect(json.pagination.prev.page).to.eql(1); pm.expect(json.pagination.next.page).to.eql(3); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?page=2&limit=3",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "2"
+                },
+                {
+                  "key": "limit",
+                  "value": "3"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Campgrounds have details and capacity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "const c = json.data.find(x => x.name === \"Doi Inthanon Camp\");",
+                  "pm.test(\"Detail fields are filled\", () => { pm.expect(c.description).to.be.a(\"string\").and.not.empty; pm.expect(c.facilities).to.be.an(\"array\").and.not.empty; pm.expect(c.rules).to.be.an(\"array\").and.not.empty; pm.expect(c.capacity).to.eql(12); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?search=Doi%20Inthanon",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Doi%20Inthanon"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Filter by date excludes the full campground",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "const names = json.data.map(c => c.name);",
+                  "pm.test(\"Mae Sa Hideaway is not listed on its full date\", () => pm.expect(names).to.not.include(\"Mae Sa Hideaway\"));",
+                  "pm.test(\"Other campgrounds are still listed\", () => { pm.expect(names).to.include(\"Doi Inthanon Camp\"); pm.expect(names).to.include(\"Railay Beach Camp\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?date={{fullDate}}&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{fullDate}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Filter by a free date still lists the full campground",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "pm.test(\"Mae Sa Hideaway is listed\", () => pm.expect(json.data.map(c => c.name)).to.include(\"Mae Sa Hideaway\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?date={{futureDate}}&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{futureDate}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Filter by an invalid date -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Message asks for YYYY-MM-DD\", () => pm.expect(pm.response.json().message).to.include(\"YYYY-MM-DD\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?date=2026-13-45",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-13-45"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Filter by a malformed date -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?date=tomorrow",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "tomorrow"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get locations (regions and provinces)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Has the 6 regions\", () => pm.expect(json.data.regions).to.have.members([\"North\", \"Northeast\", \"Central\", \"East\", \"West\", \"South\"]));",
+                  "pm.test(\"Has the 8 seeded provinces\", () => pm.expect(json.data.provinces).to.include.members([\"Chiang Mai\", \"Chiang Rai\", \"Nakhon Ratchasima\", \"Loei\", \"Nakhon Nayok\", \"Rayong\", \"Kanchanaburi\", \"Krabi\"]));",
+                  "pm.test(\"Provinces are sorted\", () => pm.expect(json.data.provinces).to.eql([...json.data.provinces].sort((a, b) => a.localeCompare(b))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/locations",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "locations"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Availability",
+      "item": [
+        {
+          "name": "Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+                  "pm.environment.set(\"TOKEN\", json.token);",
+                  "pm.environment.set(\"adminToken\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/login",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Find the full campground (Mae Sa Hideaway, capacity 1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const full = json.data.find(c => c.name === \"Mae Sa Hideaway\");",
+                  "pm.test(\"Full campground exists with capacity 1\", () => { pm.expect(full).to.be.an(\"object\"); pm.expect(full.capacity).to.eql(1); });",
+                  "if (full) pm.environment.set(\"fullCampgroundId\", full._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?search=Mae%20Sa&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Mae%20Sa"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Get the full campground's upcoming booking to find the full date",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const booked = json.data.find(b => b.status !== \"cancelled\");",
+                  "pm.test(\"Full campground has a booking\", () => pm.expect(booked).to.be.an(\"object\"));",
+                  "if (booked) pm.environment.set(\"fullDate\", booked.checkInDate.slice(0, 10));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{fullCampgroundId}}/bookings",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{fullCampgroundId}}",
+                "bookings"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Full campground on a free date is available",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Available with 1 remaining\", () => { pm.expect(d.capacity).to.eql(1); pm.expect(d.booked).to.eql(0); pm.expect(d.remaining).to.eql(1); pm.expect(d.available).to.eql(true); });",
+                  "pm.test(\"Echoes the date\", () => pm.expect(d.date).to.eql(pm.environment.get(\"futureDate\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{fullCampgroundId}}/availability?date={{futureDate}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{fullCampgroundId}}",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{futureDate}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Full campground on its full date has remaining 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Fully booked\", () => { pm.expect(d.capacity).to.eql(1); pm.expect(d.booked).to.eql(1); pm.expect(d.remaining).to.eql(0); pm.expect(d.available).to.eql(false); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{fullCampgroundId}}/availability?date={{fullDate}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{fullCampgroundId}}",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{fullDate}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Find \"Doi Inthanon Camp\" in the seeded data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const found = json.data.find(c => c.name === \"Doi Inthanon Camp\");",
+                  "pm.test(\"Seeded campground Doi Inthanon Camp exists (run node seeder -i)\", () => pm.expect(found).to.be.an(\"object\"));",
+                  "if (found) pm.environment.set(\"inthanonId\", found._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?search=Doi%20Inthanon%20Camp&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Doi%20Inthanon%20Camp"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Large campground on the full date is still available",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Available with room left\", () => { pm.expect(d.capacity).to.eql(12); pm.expect(d.remaining).to.be.above(0); pm.expect(d.available).to.eql(true); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{inthanonId}}/availability?date={{fullDate}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{inthanonId}}",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{fullDate}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Availability without a date -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{fullCampgroundId}}/availability",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{fullCampgroundId}}",
+                "availability"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Availability with an invalid date -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Message asks for YYYY-MM-DD\", () => pm.expect(pm.response.json().message).to.include(\"YYYY-MM-DD\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{fullCampgroundId}}/availability?date=2026-02-30",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{fullCampgroundId}}",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-02-30"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Availability for an unknown campground -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/000000000000000000000000/availability?date={{futureDate}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "000000000000000000000000",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{futureDate}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Availability with an invalid campground id -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/not-an-id/availability?date={{futureDate}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "not-an-id",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{futureDate}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Login user1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+                  "pm.environment.set(\"TOKEN\", json.token);",
+                  "pm.environment.set(\"user1Token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/login",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user1@gmail.com\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Change password with a wrong current password -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/updatepassword",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "updatepassword"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"wrongpass\",\n  \"newPassword\": \"654321\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Change password with a too-short new password -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/updatepassword",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "updatepassword"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"123456\",\n  \"newPassword\": \"123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Change password (revokes the old token, returns a new one)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set(\"oldUser1Token\", pm.environment.get(\"user1Token\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a new token\", () => { pm.expect(json.token).to.be.a(\"string\"); pm.expect(json.token).to.not.eql(pm.environment.get(\"oldUser1Token\")); });",
+                  "pm.environment.set(\"TOKEN\", json.token);",
+                  "pm.environment.set(\"user1Token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/updatepassword",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "updatepassword"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"123456\",\n  \"newPassword\": \"654321\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "The old token no longer works -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/auth/me",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{oldUser1Token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "The new token works",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Still user1\", () => pm.expect(pm.response.json().data.email).to.eql(\"user1@gmail.com\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/auth/me",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login with the new password -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+                  "pm.environment.set(\"TOKEN\", json.token);",
+                  "pm.environment.set(\"user1Token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/login",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user1@gmail.com\",\n  \"password\": \"654321\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login with the old password -> 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/login",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user1@gmail.com\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Change password back to 123456",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a new token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+                  "pm.environment.set(\"TOKEN\", json.token);",
+                  "pm.environment.set(\"user1Token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/updatepassword",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "updatepassword"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"654321\",\n  \"newPassword\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update name, tel and email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Details are updated\", () => { pm.expect(d.name).to.eql(\"User One Updated\"); pm.expect(d.tel).to.eql(\"0899999998\"); pm.expect(d.email).to.eql(\"user1.updated@gmail.com\"); });",
+                  "pm.test(\"Role is unchanged\", () => pm.expect(d.role).to.eql(\"user\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/updatedetails",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "updatedetails"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"User One Updated\",\n  \"tel\": \"0899999998\",\n  \"email\": \"user1.updated@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get me shows the new details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"New name\", () => pm.expect(pm.response.json().data.name).to.eql(\"User One Updated\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/auth/me",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update email to one that is already registered -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Says the email is already registered\", () => pm.expect(pm.response.json().message).to.eql(\"Email is already registered\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/updatedetails",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "updatedetails"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user2@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update with an invalid telephone -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/updatedetails",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "updatedetails"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tel\": \"abc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update details with an empty body -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/updatedetails",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "updatedetails"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Restore the original name, tel and email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Original details are back\", () => { pm.expect(d.name).to.eql(\"User One\"); pm.expect(d.tel).to.eql(\"0811111111\"); pm.expect(d.email).to.eql(\"user1@gmail.com\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/updatedetails",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "updatedetails"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"User One\",\n  \"tel\": \"0811111111\",\n  \"email\": \"user1@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login user1 again (original email and password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+                  "pm.environment.set(\"TOKEN\", json.token);",
+                  "pm.environment.set(\"user1Token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/login",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user1@gmail.com\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Login user2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+                  "pm.environment.set(\"TOKEN\", json.token);",
+                  "pm.environment.set(\"user2Token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/login",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user2@gmail.com\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login user1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a token\", () => pm.expect(json.token).to.be.a(\"string\"));",
+                  "pm.environment.set(\"TOKEN\", json.token);",
+                  "pm.environment.set(\"user1Token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/auth/login",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user1@gmail.com\",\n  \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Find \"Erawan Riverside Camp\" in the seeded data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const found = json.data.find(c => c.name === \"Erawan Riverside Camp\");",
+                  "pm.test(\"Seeded campground Erawan Riverside Camp exists (run node seeder -i)\", () => pm.expect(found).to.be.an(\"object\"));",
+                  "if (found) pm.environment.set(\"erawanId\", found._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?search=Erawan%20Riverside%20Camp&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Erawan%20Riverside%20Camp"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Find \"Khao Yai Pine Camp\" in the seeded data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const found = json.data.find(c => c.name === \"Khao Yai Pine Camp\");",
+                  "pm.test(\"Seeded campground Khao Yai Pine Camp exists (run node seeder -i)\", () => pm.expect(found).to.be.an(\"object\"));",
+                  "if (found) pm.environment.set(\"khaoYaiId\", found._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?search=Khao%20Yai%20Pine%20Camp&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Khao%20Yai%20Pine%20Camp"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Find \"Doi Inthanon Camp\" in the seeded data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const found = json.data.find(c => c.name === \"Doi Inthanon Camp\");",
+                  "pm.test(\"Seeded campground Doi Inthanon Camp exists (run node seeder -i)\", () => pm.expect(found).to.be.an(\"object\"));",
+                  "if (found) pm.environment.set(\"inthanonId\", found._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds?search=Doi%20Inthanon%20Camp&limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Doi%20Inthanon%20Camp"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "User1 get bookings and find the completed (unreviewed) and upcoming Erawan stays",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const erawan = json.data.filter(b => b.campground.name === \"Erawan Riverside Camp\");",
+                  "const done = erawan.find(b => b.status === \"completed\");",
+                  "const next = erawan.find(b => b.status === \"upcoming\");",
+                  "pm.test(\"User1 has a completed and an upcoming Erawan booking\", () => { pm.expect(done).to.be.an(\"object\"); pm.expect(next).to.be.an(\"object\"); });",
+                  "if (done) pm.environment.set(\"reviewBookingId\", done._id);",
+                  "if (next) pm.environment.set(\"upcomingErawanBookingId\", next._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/bookings",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "User2 get bookings and find the completed Khao Yai stay",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "const done = json.data.find(b => b.status === \"completed\" && b.campground.name === \"Khao Yai Pine Camp\");",
+                  "pm.test(\"User2 has a completed Khao Yai booking\", () => pm.expect(done).to.be.an(\"object\"));",
+                  "if (done) pm.environment.set(\"user2ReviewBookingId\", done._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/bookings",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user2Token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Review without a bookingId -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"comment\": \"No booking\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Review for an unknown campground -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/000000000000000000000000/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "000000000000000000000000",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{reviewBookingId}}\",\n  \"rating\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Review for an unknown booking -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"000000000000000000000000\",\n  \"rating\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Review for an upcoming booking -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Must wait for the stay\", () => pm.expect(pm.response.json().message).to.eql(\"You can only review after your stay\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{upcomingErawanBookingId}}\",\n  \"rating\": 4,\n  \"comment\": \"Too early\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "User1 review user2's booking -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{khaoYaiId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{khaoYaiId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{user2ReviewBookingId}}\",\n  \"rating\": 1,\n  \"comment\": \"Not my stay\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Review a booking for a different campground -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{khaoYaiId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{khaoYaiId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{reviewBookingId}}\",\n  \"rating\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Review with rating 0 -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{reviewBookingId}}\",\n  \"rating\": 0,\n  \"comment\": \"Too low\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Review with rating 6 -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{reviewBookingId}}\",\n  \"rating\": 6,\n  \"comment\": \"Too high\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Review with a fractional rating -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{reviewBookingId}}\",\n  \"rating\": 3.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "User1 review the completed Erawan booking -> 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Review is for user1 and this booking\", () => { pm.expect(d.user).to.eql(pm.environment.get(\"user1Id\")); pm.expect(d.booking).to.eql(pm.environment.get(\"reviewBookingId\")); pm.expect(d.campground).to.eql(pm.environment.get(\"erawanId\")); });",
+                  "pm.test(\"Rating and comment saved\", () => { pm.expect(d.rating).to.eql(4); pm.expect(d.comment).to.eql(\"Lovely riverside spot.\"); });",
+                  "pm.environment.set(\"reviewId\", d._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{reviewBookingId}}\",\n  \"rating\": 4,\n  \"comment\": \"Lovely riverside spot.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Review the same booking again -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test(\"Already reviewed\", () => pm.expect(pm.response.json().message).to.eql(\"This booking has already been reviewed\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{reviewBookingId}}\",\n  \"rating\": 5,\n  \"comment\": \"Again\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List all reviews (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "pm.test(\"Includes the new review\", () => pm.expect(json.data.map(x => x._id)).to.include(pm.environment.get(\"reviewId\")));",
+                  "pm.test(\"Reviewer shows name only\", () => json.data.forEach(x => pm.expect(x.user).to.have.property(\"name\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/reviews?limit=50",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "List a campground's reviews",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "pm.test(\"Only Erawan reviews\", () => json.data.forEach(x => pm.expect(x.campground).to.eql(pm.environment.get(\"erawanId\"))));",
+                  "pm.test(\"Includes the new review\", () => pm.expect(json.data.map(x => x._id)).to.include(pm.environment.get(\"reviewId\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "List reviews of an unknown campground -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/000000000000000000000000/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "000000000000000000000000",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Campground detail shows reviews and rating",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Has reviews with the reviewer name\", () => { pm.expect(d.reviews).to.be.an(\"array\"); const mine = d.reviews.find(x => x._id === pm.environment.get(\"reviewId\")); pm.expect(mine).to.be.an(\"object\"); pm.expect(mine.user.name).to.eql(\"User One\"); });",
+                  "pm.test(\"Average rating and count are calculated\", () => { pm.expect(d.averageRating).to.eql(4); pm.expect(d.ratingCount).to.eql(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Campground detail shows the seeded review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Seeded 5-star review is shown\", () => { pm.expect(d.reviews.length).to.be.at.least(1); pm.expect(d.reviews[0].rating).to.eql(5); pm.expect(d.averageRating).to.eql(5); pm.expect(d.ratingCount).to.eql(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{inthanonId}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{inthanonId}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "User2 update user1's review -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/reviews/{{reviewId}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user2Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "User1 update own review with rating 9 -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/reviews/{{reviewId}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "User1 update own review -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"Rating and comment changed\", () => { pm.expect(d.rating).to.eql(2); pm.expect(d.comment).to.eql(\"Changed my mind, it was noisy.\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/reviews/{{reviewId}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 2,\n  \"comment\": \"Changed my mind, it was noisy.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update an unknown review -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{URL}}/reviews/000000000000000000000000",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "reviews",
+                "000000000000000000000000"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "User2 delete user1's review -> 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/reviews/{{reviewId}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user2Token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "User1 delete own review -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/reviews/{{reviewId}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "reviews",
+                "{{reviewId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user1Token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deleted review is gone from the campground list",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Returns a list\", () => pm.expect(json.data).to.be.an(\"array\"));",
+                  "pm.test(\"Review is gone\", () => pm.expect(json.data.map(x => x._id)).to.not.include(pm.environment.get(\"reviewId\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}/reviews",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Campground rating is reset after the delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"No reviews left\", () => { pm.expect(d.reviews.length).to.eql(0); pm.expect(d.ratingCount).to.eql(0); pm.expect(d.averageRating).to.eql(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL}}/campgrounds/{{erawanId}}",
+              "host": [
+                "{{URL}}"
+              ],
+              "path": [
+                "campgrounds",
+                "{{erawanId}}"
               ]
             },
             "auth": {

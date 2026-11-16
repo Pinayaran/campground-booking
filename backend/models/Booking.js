@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+const { addDays } = require('../utils/dates');
 
 const BookingSchema = new mongoose.Schema({
   user: {
@@ -44,7 +43,7 @@ const BookingSchema = new mongoose.Schema({
 
 BookingSchema.pre('validate', function () {
   if (this.checkInDate && this.nights) {
-    this.checkOutDate = new Date(this.checkInDate.getTime() + this.nights * DAY_MS);
+    this.checkOutDate = addDays(this.checkInDate, this.nights);
   }
 });
 

@@ -17,4 +17,14 @@ const RevokedTokenSchema = new mongoose.Schema({
 //TTL index: delete the document when expiresAt is reached
 RevokedTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+//Revoke a token from its decoded payload. Stored until the token's own expiry;
+//upsert so revoking the same token twice is harmless.
+RevokedTokenSchema.statics.revoke = function ({ jti, exp }) {
+  return this.updateOne(
+    { jti },
+    { jti, expiresAt: new Date(exp * 1000) },
+    { upsert: true }
+  );
+};
+
 module.exports = mongoose.model('RevokedToken', RevokedTokenSchema);

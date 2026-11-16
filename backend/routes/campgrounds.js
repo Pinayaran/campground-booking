@@ -4,21 +4,29 @@ const { protect, authorize } = require('../middleware/auth');
 
 const {
     getCampgrounds,
+    getCampgroundLocations,
     getCampground,
     createCampground,
     updateCampground,
-    deleteCampground
+    deleteCampground,
+    getCampgroundAvailability
 } = require('../controllers/campgrounds');
 
 //Include other resource routers
 const bookingRouter = require('./bookings');
+const reviewRouter = require('./reviews');
 
 //Re-route into other resource routers
 router.use('/:campgroundId/bookings', bookingRouter);
+router.use('/:campgroundId/reviews', reviewRouter);
 
 router.route('/')
     .get(getCampgrounds)
     .post(protect, authorize('admin'), createCampground);
+
+router.get('/locations', getCampgroundLocations);
+
+router.get('/:id/availability', getCampgroundAvailability);
 
 router.route('/:id')
     .get(getCampground)
